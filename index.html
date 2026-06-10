@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="QuantNAS Studio helps users submit target tasks and receive NAS-searched layer-composition configs for quantized LLMs."
+    />
+    <title>QuantNAS Studio | Layer-wise NAS for Quantized LLMs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div class="ambient-grid" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="topbar site-shell">
+      <a class="brand" href="#top" aria-label="QuantNAS Studio 首页">
+        <span class="brand-mark">QN</span>
+        <span>
+          <strong>QuantNAS Studio</strong>
+          <small>Layer-wise Search for Quantized LLMs</small>
+        </span>
+      </a>
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#workflow">搜索流程</a>
+        <a href="#models">模型池</a>
+        <a href="#request">提交任务</a>
+        <a href="#contact">联系我们</a>
+      </nav>
+      <a class="nav-cta" href="#request">开始搜索</a>
+    </header>
+
+    <main id="top">
+      <section class="hero site-shell">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">Post-Quantization NAS Platform</p>
+          <h1 class="hero-title">
+            <span class="title-accent">NAS</span>
+            <span>for your</span>
+            <span class="title-outline">LLM</span>
+          </h1>
+          <p class="hero-lead">
+            基于 ParoQuant、GPTAQ、SlimLLM、LRQ+ 等量化结果，面向 Qwen、Llama
+            系列模型进行逐层组合搜索。用户只需要描述任务、约束与评测数据，我们在后端返回最优组合配置文件。
+          </p>
+          <div class="hero-actions">
+            <a class="primary-button" href="#request">提交 NAS 任务</a>
+            <a class="secondary-button" href="#workflow">查看工作流</a>
+          </div>
+          <div class="metric-strip" aria-label="平台能力指标">
+            <div>
+              <strong>18+</strong>
+              <span>Base Models</span>
+            </div>
+            <div>
+              <strong>4</strong>
+              <span>Quantizers</span>
+            </div>
+            <div>
+              <strong>Layer-wise</strong>
+              <span>Composition</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="量化层组合可视化">
+          <div class="orbit-card">
+            <div class="orbit-ring ring-one"></div>
+            <div class="orbit-ring ring-two"></div>
+            <div class="core-chip">
+              <span>NAS</span>
+              <strong>Search Core</strong>
+            </div>
+            <div class="layer-token token-a">Qwen2.5-32B</div>
+            <div class="layer-token token-b">Llama3.1-70B</div>
+            <div class="layer-token token-c">SlimLLM</div>
+            <div class="layer-token token-d">LRQ+</div>
+          </div>
+          <div class="search-board">
+            <div class="trace-header">
+              <div>
+                <span class="status-dot"></span>
+                <span>NAS Search Trace</span>
+              </div>
+              <strong>loss <span id="hero-loss">1.86</span> ↓</strong>
+            </div>
+            <div class="search-board-body">
+              <div class="loss-plot" aria-label="NAS 搜索 loss 下降动画">
+                <svg class="loss-svg" viewBox="0 0 260 128" role="img" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="loss-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#36d99d" />
+                      <stop offset="55%" stop-color="#39c8e8" />
+                      <stop offset="100%" stop-color="#e5b862" />
+                    </linearGradient>
+                  </defs>
+                  <path class="loss-fill" d="M12 24 C38 38 48 54 70 56 C96 60 102 78 128 76 C158 74 166 92 192 92 C218 92 228 104 248 108 L248 122 L12 122 Z" />
+                  <path class="loss-curve" d="M12 24 C38 38 48 54 70 56 C96 60 102 78 128 76 C158 74 166 92 192 92 C218 92 228 104 248 108" />
+                </svg>
+                <span class="loss-cursor" aria-hidden="true"></span>
+                <div class="loss-axis">
+                  <span>init</span>
+                  <span>best</span>
+                </div>
+              </div>
+
+              <div class="layer-bars compact-bars" aria-label="候选组合摘要">
+                <span style="--w: 74%; --c: var(--mint)">ParoQuant L0-L11</span>
+                <span style="--w: 58%; --c: var(--cyan)">GPTAQ L12-L27</span>
+                <span style="--w: 81%; --c: var(--gold)">SlimLLM L28-L47</span>
+                <span style="--w: 46%; --c: var(--coral)">LRQ+ L48-L63</span>
+              </div>
+            </div>
+            <div class="trace-steps" aria-label="NAS 搜索阶段">
+              <span class="trace-step is-active">Sample</span>
+              <span class="trace-step">Evaluate</span>
+              <span class="trace-step">Mutate</span>
+              <span class="trace-step">Select</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="site-shell section" id="workflow">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Search Pipeline</p>
+          <h2>从任务需求到 Hugging Face 拉取清单</h2>
+          <p>
+            页面先收集任务、模型池、量化方法和资源约束；后端可以接入真实 NAS
+            服务，返回组合配置、线性层来源和复现实验参数。
+          </p>
+        </div>
+        <div class="workflow-grid">
+          <article class="workflow-card reveal">
+            <span>01</span>
+            <h3>任务画像</h3>
+            <p>收集任务类型、数据域、指标偏好、质量下限、显存和延迟约束。</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>02</span>
+            <h3>搜索空间构建</h3>
+            <p>在 Qwen2.5、Qwen3、Llama2、Llama3.1 等模型的量化线性层池中构造候选。</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>03</span>
+            <h3>NAS 评估</h3>
+            <p>后端按任务评测集和硬件约束搜索 layer-level 组合，输出 Pareto 最优配置。</p>
+          </article>
+          <article class="workflow-card reveal">
+            <span>04</span>
+            <h3>配置交付</h3>
+            <p>返回 JSON 配置、HF layer pull manifest、部署提示和可复现实验元数据。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="site-shell section model-section" id="models">
+        <div class="model-copy reveal">
+          <p class="eyebrow">Quantized Layer Bank</p>
+          <h2>覆盖主流开源大模型家族</h2>
+          <p>
+            原型里已经预置你们描述的模型与量化器选项，后续可以直接从后端接口或 HF
+            repo manifest 动态加载。
+          </p>
+        </div>
+        <div class="model-cloud reveal" aria-label="支持的模型列表">
+          <span>Qwen2.5 7B</span>
+          <span>Qwen2.5 32B</span>
+          <span>Qwen3 8B</span>
+          <span>Qwen3 32B</span>
+          <span>Llama2 7B</span>
+          <span>Llama2 13B</span>
+          <span>Llama2 70B</span>
+          <span>Llama3.1 8B</span>
+          <span>Llama3.1 70B</span>
+        </div>
+      </section>
+
+      <section class="site-shell section request-section" id="request">
+        <div class="section-heading reveal">
+          <p class="eyebrow">Submit Task</p>
+          <h2>描述你的目标任务，生成 NAS 搜索请求</h2>
+          <p>
+            当前版本内置本地演示搜索结果；如果填入真实 API Endpoint，表单会 POST
+            请求到你们服务器，便于后续平滑接入后端 NAS。
+          </p>
+        </div>
+
+        <div class="request-layout">
+          <form class="request-form reveal" id="nas-form">
+            <div class="form-row two-columns">
+              <label>
+                <span>任务名称</span>
+                <input
+                  id="projectName"
+                  name="projectName"
+                  type="text"
+                  placeholder="例如：金融长文本问答压缩模型"
+                  required
+                />
+              </label>
+              <label>
+                <span>任务类型</span>
+                <select id="taskType" name="taskType" required>
+                  <option value="long_context_qa">长上下文问答</option>
+                  <option value="code_generation">代码生成</option>
+                  <option value="math_reasoning">数学推理</option>
+                  <option value="instruction_following">指令遵循</option>
+                  <option value="domain_rag">领域 RAG</option>
+                  <option value="custom">自定义任务</option>
+                </select>
+              </label>
+            </div>
+
+            <label>
+              <span>任务需求描述</span>
+              <textarea
+                id="taskDescription"
+                name="taskDescription"
+                rows="5"
+                placeholder="描述任务目标、输入输出形式、目标指标和你关心的失败案例。"
+                required
+              ></textarea>
+            </label>
+
+            <label>
+              <span>评测数据或领域提示</span>
+              <textarea
+                id="datasetHint"
+                name="datasetHint"
+                rows="3"
+                placeholder="例如：内部 dev set 2k 条；指标为 EM/F1；中文金融研报；最大上下文 32k。"
+              ></textarea>
+            </label>
+
+            <fieldset>
+              <legend>候选基座模型</legend>
+              <div class="chip-grid" id="model-chips"></div>
+            </fieldset>
+
+            <fieldset>
+              <legend>量化线性层来源</legend>
+              <div class="chip-grid compact" id="quantizer-chips"></div>
+            </fieldset>
+
+            <div class="form-row three-columns">
+              <label>
+                <span>目标硬件</span>
+                <select id="hardware" name="hardware">
+                  <option value="rtx_4090">RTX 4090</option>
+                  <option value="l40s">NVIDIA L40S</option>
+                  <option value="a100_80g">A100 80GB</option>
+                  <option value="h100_80g">H100 80GB</option>
+                  <option value="a10">A10</option>
+                  <option value="cpu">CPU / Edge</option>
+                </select>
+              </label>
+              <label>
+                <span>显存上限</span>
+                <select id="memoryCap" name="memoryCap">
+                  <option value="8">8 GB</option>
+                  <option value="16" selected>16 GB</option>
+                  <option value="24">24 GB</option>
+                  <option value="48">48 GB</option>
+                  <option value="80">80 GB</option>
+                </select>
+              </label>
+              <label>
+                <span>交付物</span>
+                <select id="deliverable" name="deliverable">
+                  <option value="config_json">配置 JSON</option>
+                  <option value="hf_manifest">HF 拉取清单</option>
+                  <option value="deploy_recipe">部署 recipe</option>
+                  <option value="all">全部</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="slider-grid">
+              <label class="range-label">
+                <span>延迟优先级 <strong id="latencyValue">7</strong>/10</span>
+                <input id="latencyPriority" name="latencyPriority" type="range" min="1" max="10" value="7" />
+              </label>
+              <label class="range-label">
+                <span>质量保留下限 <strong id="qualityValue">95</strong>%</span>
+                <input id="qualityFloor" name="qualityFloor" type="range" min="80" max="99" value="95" />
+              </label>
+            </div>
+
+            <div class="form-row two-columns">
+              <label>
+                <span>联系邮箱（可选）</span>
+                <input id="contactEmail" name="contactEmail" type="email" placeholder="name@lab.org" />
+              </label>
+              <label>
+                <span>真实 NAS API Endpoint（可选）</span>
+                <input id="apiEndpoint" name="apiEndpoint" type="url" placeholder="留空使用本地演示结果" />
+              </label>
+            </div>
+
+            <button class="submit-button" type="submit">
+              <span>启动 NAS 搜索</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          <aside class="mission-panel reveal" aria-live="polite">
+            <div class="panel-card">
+              <p class="eyebrow">Live Payload</p>
+              <h3>请求预览</h3>
+              <pre id="payload-preview">{}</pre>
+            </div>
+            <div class="panel-card progress-card" id="progress-card">
+              <div class="progress-header">
+                <span>Search Progress</span>
+                <strong id="progress-percent">0%</strong>
+              </div>
+              <div class="progress-track">
+                <span id="progress-bar"></span>
+              </div>
+              <p id="progress-label">等待提交任务。</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="site-shell section result-section" id="result-section" hidden>
+        <div class="result-shell reveal">
+          <div class="result-summary">
+            <p class="eyebrow">NAS Result</p>
+            <h2>候选最优配置已生成</h2>
+            <p id="result-copy">
+              这是本地演示模式生成的配置格式，后续接入真实服务后会替换为服务器返回结果。
+            </p>
+            <div class="result-metrics" id="result-metrics"></div>
+            <div class="result-actions">
+              <button class="secondary-button" id="copy-result" type="button">复制配置 JSON</button>
+              <button class="primary-button" id="download-result" type="button">下载 config.json</button>
+            </div>
+          </div>
+          <pre class="result-json" id="result-json"></pre>
+        </div>
+      </section>
+
+      <section class="site-shell section contact-section" id="contact">
+        <div class="contact-shell reveal">
+          <div class="contact-copy">
+            <p class="eyebrow">Research Access</p>
+            <h2>Paper &amp; Code</h2>
+            <p>
+              这里会集中放置项目论文、开源代码、实验室主页和联系邮箱。GitHub 与 arXiv
+              暂时使用占位地址，后续替换为正式链接即可。
+            </p>
+          </div>
+
+          <div class="resource-grid" aria-label="项目资源链接">
+            <a class="resource-card lab-card" href="https://miaozhang0525.github.io/aeegroup.html" target="_blank" rel="noreferrer">
+              <span class="resource-kicker">Lab</span>
+              <strong>About Our Group</strong>
+            </a>
+            <a class="resource-card" href="https://github.com/Hittopu/quantnas-studio" target="_blank" rel="noreferrer">
+              <span class="resource-kicker">GitHub</span>
+              <strong>quantnas-studio.github</strong>
+              <small>项目源码与 GitHub Pages 部署仓库</small>
+            </a>
+            <a class="resource-card" href="https://arxiv.org/abs/0000.00000" target="_blank" rel="noreferrer">
+              <span class="resource-kicker">arXiv</span>
+              <strong>quantnas-studio.arxiv</strong>
+              <small>占位链接，等待正式论文</small>
+            </a>
+          </div>
+
+          <div class="contact-card" aria-label="联系方式">
+            <div>
+              <p class="eyebrow">Contact</p>
+              <h3>联系我们</h3>
+              <p>如果你想试用量化层组合搜索、复现实验或讨论合作，可以通过以下邮箱联系。</p>
+            </div>
+            <div class="email-list">
+              <a href="mailto:3231487539@qq.com">3231487539@qq.com</a>
+              <a href="mailto:Jiaqizhao0455@outlook.com">Jiaqizhao0455@outlook.com</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer site-shell">
+      <span>QuantNAS Studio Prototype</span>
+      <span>Designed for post-quantization layer composition research.</span>
+    </footer>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
