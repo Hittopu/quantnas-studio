@@ -186,129 +186,219 @@
       <section class="site-shell section request-section" id="request">
         <div class="section-heading reveal">
           <p class="eyebrow">Submit Task</p>
-          <h2>描述你的目标任务，生成 NAS 搜索请求</h2>
+          <h2>描述你的目标任务，我们通过邮箱交付配置</h2>
           <p>
-            当前版本内置本地演示搜索结果；如果填入真实 API Endpoint，表单会 POST
-            请求到你们服务器，便于后续平滑接入后端 NAS。
+            提交后系统会生成请求编号并发送确认邮件。我们完成 NAS 搜索与正式评估后，
+            会把结果 JSON 作为邮件附件发送到你的邮箱。
           </p>
         </div>
 
         <div class="request-layout">
           <form class="request-form reveal" id="nas-form">
-            <div class="form-row two-columns">
-              <label>
-                <span>任务名称</span>
-                <input
-                  id="projectName"
-                  name="projectName"
-                  type="text"
-                  placeholder="例如：金融长文本问答压缩模型"
-                  required
-                />
-              </label>
-              <label>
-                <span>任务类型</span>
-                <select id="taskType" name="taskType" required>
-                  <option value="long_context_qa">长上下文问答</option>
-                  <option value="code_generation">代码生成</option>
-                  <option value="math_reasoning">数学推理</option>
-                  <option value="instruction_following">指令遵循</option>
-                  <option value="domain_rag">领域 RAG</option>
-                  <option value="custom">自定义任务</option>
-                </select>
-              </label>
+            <div class="form-wizard-header" aria-label="问卷进度">
+              <div class="wizard-steps">
+                <button class="wizard-step is-active" type="button" data-step-target="1" aria-current="step">
+                  <span>01</span><strong>任务画像</strong>
+                </button>
+                <button class="wizard-step" type="button" data-step-target="2" disabled>
+                  <span>02</span><strong>搜索空间</strong>
+                </button>
+                <button class="wizard-step" type="button" data-step-target="3" disabled>
+                  <span>03</span><strong>资源约束</strong>
+                </button>
+                <button class="wizard-step" type="button" data-step-target="4" disabled>
+                  <span>04</span><strong>联系确认</strong>
+                </button>
+              </div>
+              <div class="wizard-progress" aria-hidden="true"><span id="wizard-progress-bar"></span></div>
             </div>
 
-            <label>
-              <span>任务需求描述</span>
-              <textarea
-                id="taskDescription"
-                name="taskDescription"
-                rows="5"
-                placeholder="描述任务目标、输入输出形式、目标指标和你关心的失败案例。"
-                required
-              ></textarea>
-            </label>
+            <section class="form-step" data-form-step="1">
+              <div class="step-heading">
+                <span>Step 01</span>
+                <h3>先告诉我们，你希望模型完成什么任务</h3>
+                <p>任务描述越具体，后续搜索空间和评估口径越容易确定。</p>
+              </div>
 
-            <label>
-              <span>评测数据或领域提示</span>
-              <textarea
-                id="datasetHint"
-                name="datasetHint"
-                rows="3"
-                placeholder="例如：内部 dev set 2k 条；指标为 EM/F1；中文金融研报；最大上下文 32k。"
-              ></textarea>
-            </label>
+              <div class="form-row two-columns">
+                <label>
+                  <span>任务名称</span>
+                  <input id="projectName" name="projectName" type="text" placeholder="例如：金融长文本问答压缩模型" required />
+                </label>
+                <label>
+                  <span>任务类型</span>
+                  <select id="taskType" name="taskType" required>
+                    <option value="long_context_qa">长上下文问答</option>
+                    <option value="code_generation">代码生成</option>
+                    <option value="math_reasoning">数学推理</option>
+                    <option value="instruction_following">指令遵循</option>
+                    <option value="domain_rag">领域 RAG</option>
+                    <option value="custom">自定义任务</option>
+                  </select>
+                </label>
+              </div>
 
-            <fieldset>
-              <legend>候选基座模型</legend>
-              <div class="chip-grid" id="model-chips"></div>
-            </fieldset>
-
-            <fieldset>
-              <legend>量化线性层来源</legend>
-              <div class="chip-grid compact" id="quantizer-chips"></div>
-            </fieldset>
-
-            <div class="form-row three-columns">
               <label>
-                <span>目标硬件</span>
-                <select id="hardware" name="hardware">
-                  <option value="rtx_4090">RTX 4090</option>
-                  <option value="l40s">NVIDIA L40S</option>
-                  <option value="a100_80g">A100 80GB</option>
-                  <option value="h100_80g">H100 80GB</option>
-                  <option value="a10">A10</option>
-                  <option value="cpu">CPU / Edge</option>
-                </select>
+                <span>任务需求描述</span>
+                <textarea id="taskDescription" name="taskDescription" rows="5" placeholder="描述任务目标、输入输出形式、目标指标和你关心的失败案例。" required></textarea>
               </label>
-              <label>
-                <span>显存上限</span>
-                <select id="memoryCap" name="memoryCap">
-                  <option value="8">8 GB</option>
-                  <option value="16" selected>16 GB</option>
-                  <option value="24">24 GB</option>
-                  <option value="48">48 GB</option>
-                  <option value="80">80 GB</option>
-                </select>
-              </label>
-              <label>
-                <span>交付物</span>
-                <select id="deliverable" name="deliverable">
-                  <option value="config_json">配置 JSON</option>
-                  <option value="hf_manifest">HF 拉取清单</option>
-                  <option value="deploy_recipe">部署 recipe</option>
-                  <option value="all">全部</option>
-                </select>
-              </label>
-            </div>
 
-            <div class="slider-grid">
-              <label class="range-label">
-                <span>延迟优先级 <strong id="latencyValue">7</strong>/10</span>
-                <input id="latencyPriority" name="latencyPriority" type="range" min="1" max="10" value="7" />
-              </label>
-              <label class="range-label">
-                <span>质量保留下限 <strong id="qualityValue">95</strong>%</span>
-                <input id="qualityFloor" name="qualityFloor" type="range" min="80" max="99" value="95" />
-              </label>
-            </div>
-
-            <div class="form-row two-columns">
               <label>
-                <span>联系邮箱（可选）</span>
-                <input id="contactEmail" name="contactEmail" type="email" placeholder="name@lab.org" />
+                <span>评测数据或领域提示</span>
+                <textarea id="datasetHint" name="datasetHint" rows="3" placeholder="例如：内部 dev set 2k 条；指标为 EM/F1；中文金融研报；最大上下文 32k。"></textarea>
               </label>
-              <label>
-                <span>真实 NAS API Endpoint（可选）</span>
-                <input id="apiEndpoint" name="apiEndpoint" type="url" placeholder="留空使用本地演示结果" />
-              </label>
-            </div>
 
-            <button class="submit-button" type="submit">
-              <span>启动 NAS 搜索</span>
-              <span aria-hidden="true">→</span>
-            </button>
+              <label>
+                <span>数据集或任务说明链接（可选）</span>
+                <input id="datasetUrl" name="datasetUrl" type="url" placeholder="https://..." />
+              </label>
+
+              <div class="step-actions is-end-aligned">
+                <button class="step-next-button" type="button" data-next-step>下一步 <span aria-hidden="true">→</span></button>
+              </div>
+            </section>
+
+            <section class="form-step" data-form-step="2" hidden>
+              <div class="step-heading">
+                <span>Step 02</span>
+                <h3>选择候选模型与量化层来源</h3>
+                <p>可以多选。我们会根据任务知识损失和正式评估结果筛选组合。</p>
+              </div>
+
+              <div class="form-row two-columns">
+                <label>
+                  <span>搜索模式</span>
+                  <select id="searchMode" name="searchMode" required>
+                    <option value="task_aware">任务感知组合搜索</option>
+                    <option value="fixed_method_mixed_bit">固定方法，混合 2/3/4bit</option>
+                    <option value="fixed_bit_mixed_method">固定 bit，混合量化方法</option>
+                    <option value="custom">由研究团队规划搜索空间</option>
+                  </select>
+                </label>
+                <label>
+                  <span>目标精度</span>
+                  <select id="targetPrecision" name="targetPrecision" required>
+                    <option value="2bit">2bit</option>
+                    <option value="avg_3bit" selected>平均约 3bit</option>
+                    <option value="3bit">固定 3bit</option>
+                    <option value="4bit">4bit</option>
+                    <option value="custom">自定义约束</option>
+                  </select>
+                </label>
+              </div>
+
+              <fieldset>
+                <legend>候选基座模型</legend>
+                <div class="chip-grid" id="model-chips"></div>
+              </fieldset>
+
+              <fieldset>
+                <legend>量化线性层来源</legend>
+                <div class="chip-grid compact" id="quantizer-chips"></div>
+              </fieldset>
+
+              <div class="step-actions">
+                <button class="step-back-button" type="button" data-previous-step><span aria-hidden="true">←</span> 上一步</button>
+                <button class="step-next-button" type="button" data-next-step>下一步 <span aria-hidden="true">→</span></button>
+              </div>
+            </section>
+
+            <section class="form-step" data-form-step="3" hidden>
+              <div class="step-heading">
+                <span>Step 03</span>
+                <h3>设定硬件、质量与交付约束</h3>
+                <p>这些约束会决定我们优先搜索更低显存、更高质量或更低延迟的配置。</p>
+              </div>
+
+              <div class="form-row three-columns">
+                <label>
+                  <span>目标硬件</span>
+                  <select id="hardware" name="hardware">
+                    <option value="rtx_4090">RTX 4090</option>
+                    <option value="l40s">NVIDIA L40S</option>
+                    <option value="a100_80g">A100 80GB</option>
+                    <option value="h100_80g">H100 80GB</option>
+                    <option value="a10">A10</option>
+                    <option value="cpu">CPU / Edge</option>
+                  </select>
+                </label>
+                <label>
+                  <span>显存上限</span>
+                  <select id="memoryCap" name="memoryCap">
+                    <option value="8">8 GB</option>
+                    <option value="16" selected>16 GB</option>
+                    <option value="24">24 GB</option>
+                    <option value="48">48 GB</option>
+                    <option value="80">80 GB</option>
+                  </select>
+                </label>
+                <label>
+                  <span>交付物</span>
+                  <select id="deliverable" name="deliverable">
+                    <option value="config_json">配置 JSON</option>
+                    <option value="hf_manifest">HF 拉取清单</option>
+                    <option value="deploy_recipe">部署 recipe</option>
+                    <option value="all">全部</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="slider-grid">
+                <label class="range-label">
+                  <span>延迟优先级 <strong id="latencyValue">7</strong>/10</span>
+                  <input id="latencyPriority" name="latencyPriority" type="range" min="1" max="10" value="7" />
+                </label>
+                <label class="range-label">
+                  <span>质量保留下限 <strong id="qualityValue">95</strong>%</span>
+                  <input id="qualityFloor" name="qualityFloor" type="range" min="80" max="99" value="95" />
+                </label>
+              </div>
+
+              <div class="step-actions">
+                <button class="step-back-button" type="button" data-previous-step><span aria-hidden="true">←</span> 上一步</button>
+                <button class="step-next-button" type="button" data-next-step>下一步 <span aria-hidden="true">→</span></button>
+              </div>
+            </section>
+
+            <section class="form-step" data-form-step="4" hidden>
+              <div class="step-heading">
+                <span>Step 04</span>
+                <h3>确认需求并留下结果邮箱</h3>
+                <p>提交后会收到确认邮件，正式结果以 JSON 附件交付。</p>
+              </div>
+
+              <div class="review-summary" id="review-summary" aria-live="polite"></div>
+
+              <label>
+                <span>结果接收邮箱</span>
+                <input id="contactEmail" name="contactEmail" type="email" placeholder="name@lab.org" required />
+              </label>
+
+              <label class="consent-row">
+                <input id="privacyConsent" name="privacyConsent" type="checkbox" required />
+                <span>
+                  我同意 QuantNAS Studio 保存本次需求和邮箱，用于请求处理、进度通知与结果交付。
+                  未经额外许可，不公开用户邮箱和任务描述。
+                </span>
+              </label>
+
+              <label class="honeypot-field" aria-hidden="true">
+                <span>Website</span>
+                <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+              </label>
+
+              <p class="form-note">
+                提交后请检查确认邮件。正式结果会以 JSON 附件发送，请保留邮件中的请求编号。
+              </p>
+
+              <div class="step-actions">
+                <button class="step-back-button" type="button" data-previous-step><span aria-hidden="true">←</span> 上一步</button>
+                <button class="submit-button" type="submit">
+                  <span>提交搜索需求</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </section>
           </form>
 
           <aside class="mission-panel reveal" aria-live="polite">
@@ -319,13 +409,13 @@
             </div>
             <div class="panel-card progress-card" id="progress-card">
               <div class="progress-header">
-                <span>Search Progress</span>
+                <span>Submission Status</span>
                 <strong id="progress-percent">0%</strong>
               </div>
               <div class="progress-track">
                 <span id="progress-bar"></span>
               </div>
-              <p id="progress-label">等待提交任务。</p>
+              <p id="progress-label">填写需求后提交，我们会通过邮件确认。</p>
             </div>
           </aside>
         </div>
@@ -334,15 +424,15 @@
       <section class="site-shell section result-section" id="result-section" hidden>
         <div class="result-shell reveal">
           <div class="result-summary">
-            <p class="eyebrow">NAS Result</p>
-            <h2>候选最优配置已生成</h2>
+            <p class="eyebrow">Request Received</p>
+            <h2>需求已进入处理队列</h2>
             <p id="result-copy">
-              这是本地演示模式生成的配置格式，后续接入真实服务后会替换为服务器返回结果。
+              请检查确认邮件并保存请求编号。搜索完成后，结果 JSON 会发送到提交邮箱。
             </p>
             <div class="result-metrics" id="result-metrics"></div>
             <div class="result-actions">
-              <button class="secondary-button" id="copy-result" type="button">复制配置 JSON</button>
-              <button class="primary-button" id="download-result" type="button">下载 config.json</button>
+              <button class="secondary-button" id="copy-result" type="button">复制请求 JSON</button>
+              <button class="primary-button" id="download-result" type="button">下载 request.json</button>
             </div>
           </div>
           <pre class="result-json" id="result-json"></pre>
@@ -397,6 +487,7 @@
       <span>Designed for post-quantization layer composition research.</span>
     </footer>
 
+    <script src="./src/config.js"></script>
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>

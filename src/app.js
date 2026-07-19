@@ -1,3 +1,5 @@
+const channelConfig = window.QUANTNAS_CONFIG || {};
+
 const baseModels = [
   "Qwen2.5-7B",
   "Qwen2.5-32B",
@@ -12,18 +14,6 @@ const baseModels = [
 
 const quantizers = ["ParoQuant", "GPTAQ", "SlimLLM", "LRQ+"];
 
-const modelSpecs = {
-  "Qwen2.5-7B": { layers: 28, family: "qwen2.5", scale: "7b" },
-  "Qwen2.5-32B": { layers: 64, family: "qwen2.5", scale: "32b" },
-  "Qwen3-8B": { layers: 36, family: "qwen3", scale: "8b" },
-  "Qwen3-32B": { layers: 64, family: "qwen3", scale: "32b" },
-  "Llama2-7B": { layers: 32, family: "llama2", scale: "7b" },
-  "Llama2-13B": { layers: 40, family: "llama2", scale: "13b" },
-  "Llama2-70B": { layers: 80, family: "llama2", scale: "70b" },
-  "Llama3.1-8B": { layers: 32, family: "llama3.1", scale: "8b" },
-  "Llama3.1-70B": { layers: 80, family: "llama3.1", scale: "70b" }
-};
-
 const taskLabels = {
   long_context_qa: "长上下文问答",
   code_generation: "代码生成",
@@ -33,19 +23,20 @@ const taskLabels = {
   custom: "自定义任务"
 };
 
-const searchSteps = [
-  ["构建 layer bank 索引", 18],
-  ["生成任务画像与约束向量", 32],
-  ["采样候选 layer composition", 55],
-  ["运行代理评测与硬件估计", 76],
-  ["选择 Pareto 最优配置", 92],
-  ["打包 HF pull manifest", 100]
-];
+function createRequestId() {
+  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
+  const random = new Uint32Array(1);
+  window.crypto.getRandomValues(random);
+  return `QNAS-${date}-${random[0].toString(36).toUpperCase().padStart(6, "0").slice(-6)}`;
+}
 
 const state = {
-  selectedModels: new Set(["Qwen2.5-7B", "Llama3.1-8B"]),
-  selectedQuantizers: new Set(["ParoQuant", "GPTAQ", "SlimLLM"]),
-  lastResult: null
+  selectedModels: new Set(["Qwen3-8B", "Qwen3-32B"]),
+  selectedQuantizers: new Set(quantizers),
+  requestId: createRequestId(),
+  lastResult: null,
+  currentStep: 1,
+  maxVisitedStep: 1
 };
 
 const elements = {
@@ -67,6 +58,11 @@ const elements = {
   copyButton: document.querySelector("#copy-result"),
   downloadButton: document.querySelector("#download-result")
 };
+
+elements.formSteps = Array.from(document.querySelectorAll(".form-step"));
+elements.wizardSteps = Array.from(document.querySelectorAll(".wizard-step"));
+elements.wizardProgressBar = document.querySelector("#wizard-progress-bar");
+elements.reviewSummary = document.querySelector("#review-summary");
 
 function renderChipGroup(container, items, selectedSet, onToggle) {
   container.innerHTML = "";
@@ -99,11 +95,16 @@ function getFormPayload() {
   const formData = new FormData(elements.form);
 
   return {
+    schema_version: "1.0",
+    request_id: state.requestId,
     project_name: formData.get("projectName") || "",
     task_type: formData.get("taskType"),
     task_label: taskLabels[formData.get("taskType")] || "自定义任务",
+    search_mode: formData.get("searchMode"),
+    target_precision: formData.get("targetPrecision"),
     task_description: formData.get("taskDescription") || "",
     dataset_hint: formData.get("datasetHint") || "",
+    dataset_url: formData.get("datasetUrl") || "",
     candidate_base_models: Array.from(state.selectedModels),
     quantized_layer_sources: Array.from(state.selectedQuantizers),
     constraints: {
@@ -114,7 +115,11 @@ function getFormPayload() {
     },
     deliverable: formData.get("deliverable"),
     contact_email: formData.get("contactEmail") || "",
-    requested_at: new Date().toISOString()
+    privacy_consent: formData.get("privacyConsent") === "on",
+    consent_version: "2026-07-19",
+    channel_version: channelConfig.channelVersion || "1.0.0",
+    requested_at: new Date().toISOString(),
+    page_url: window.location.href.split("#")[0]
   };
 }
 
@@ -124,161 +129,164 @@ function updatePreview() {
   elements.preview.textContent = JSON.stringify(getFormPayload(), null, 2);
 }
 
+function appendReviewItem(container, label, value) {
+  const item = document.createElement("div");
+  const term = document.createElement("span");
+  const detail = document.createElement("strong");
+  term.textContent = label;
+  detail.textContent = value || "未填写";
+  item.append(term, detail);
+  container.append(item);
+}
+
+function getSelectedOptionText(id) {
+  const select = document.querySelector(`#${id}`);
+  return select?.selectedOptions?.[0]?.textContent?.trim() || "";
+}
+
+function renderReviewSummary() {
+  const payload = getFormPayload();
+  elements.reviewSummary.replaceChildren();
+  appendReviewItem(elements.reviewSummary, "任务", `${payload.project_name} · ${payload.task_label}`);
+  appendReviewItem(elements.reviewSummary, "搜索方式", getSelectedOptionText("searchMode"));
+  appendReviewItem(elements.reviewSummary, "候选模型", payload.candidate_base_models.join("、"));
+  appendReviewItem(elements.reviewSummary, "量化来源", payload.quantized_layer_sources.join("、"));
+  appendReviewItem(
+    elements.reviewSummary,
+    "资源约束",
+    `${getSelectedOptionText("hardware")} · ${payload.constraints.memory_cap_gb} GB · ${getSelectedOptionText("targetPrecision")}`
+  );
+  appendReviewItem(elements.reviewSummary, "交付", getSelectedOptionText("deliverable"));
+}
+
+function validateStep(step) {
+  const section = elements.formSteps.find((item) => Number(item.dataset.formStep) === step);
+  if (!section) {
+    return false;
+  }
+
+  const fields = Array.from(section.querySelectorAll("input, select, textarea"));
+  const invalidField = fields.find((field) => !field.checkValidity());
+  if (invalidField) {
+    invalidField.reportValidity();
+    invalidField.focus({ preventScroll: true });
+    invalidField.scrollIntoView({ behavior: "smooth", block: "center" });
+    return false;
+  }
+  return true;
+}
+
+function showFormStep(step, { validateCurrent = false } = {}) {
+  const nextStep = Math.min(Math.max(Number(step), 1), elements.formSteps.length);
+  if (validateCurrent && nextStep > state.currentStep && !validateStep(state.currentStep)) {
+    return;
+  }
+  if (nextStep > state.maxVisitedStep + 1) {
+    return;
+  }
+
+  state.currentStep = nextStep;
+  state.maxVisitedStep = Math.max(state.maxVisitedStep, nextStep);
+  elements.formSteps.forEach((section) => {
+    section.hidden = Number(section.dataset.formStep) !== nextStep;
+  });
+  elements.wizardSteps.forEach((button, index) => {
+    const buttonStep = index + 1;
+    const isActive = buttonStep === nextStep;
+    button.disabled = buttonStep > state.maxVisitedStep;
+    button.classList.toggle("is-active", isActive);
+    button.classList.toggle("is-complete", buttonStep < state.maxVisitedStep);
+    if (isActive) {
+      button.setAttribute("aria-current", "step");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+  elements.wizardProgressBar.style.width = `${(nextStep / elements.formSteps.length) * 100}%`;
+
+  if (nextStep === elements.formSteps.length) {
+    renderReviewSummary();
+  }
+}
+
 function setProgress(percent, label) {
   elements.progressPercent.textContent = `${percent}%`;
   elements.progressBar.style.width = `${percent}%`;
   elements.progressLabel.textContent = label;
 }
 
-function pickBestModel(payload) {
-  const selected = payload.candidate_base_models;
-  const memoryCap = payload.constraints.memory_cap_gb;
-  const latencyPriority = payload.constraints.latency_priority;
-
-  if (memoryCap >= 48 && selected.includes("Llama3.1-70B")) {
-    return "Llama3.1-70B";
+function getSubmissionEndpoint() {
+  const configured = String(channelConfig.appsScriptWebAppUrl || "").trim();
+  if (configured) {
+    return configured;
   }
 
-  if (memoryCap >= 48 && selected.includes("Qwen2.5-32B")) {
-    return "Qwen2.5-32B";
+  if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    return "/api/requests";
   }
 
-  if (latencyPriority >= 8 && selected.includes("Qwen3-8B")) {
-    return "Qwen3-8B";
+  return "";
+}
+
+async function submitRequest(payload) {
+  const endpoint = getSubmissionEndpoint();
+  if (!endpoint) {
+    throw new Error("需求接收渠道尚未配置，请稍后再试或通过页面底部联系邮箱提交。 ");
   }
 
-  return selected.find((model) => model.includes("8B") || model.includes("7B")) || selected[0];
-}
+  setProgress(22, "正在加密传输需求");
 
-function buildLayerComposition(model, payload) {
-  const spec = modelSpecs[model] || { layers: 32, family: "custom", scale: "unknown" };
-  const chosenQuantizers = payload.quantized_layer_sources;
-  const segmentCount = Math.min(chosenQuantizers.length, 4);
-  const segmentSize = Math.ceil(spec.layers / segmentCount);
-
-  return Array.from({ length: segmentCount }, (_, index) => {
-    const start = index * segmentSize;
-    const end = Math.min((index + 1) * segmentSize - 1, spec.layers - 1);
-    const quantizer = chosenQuantizers[index % chosenQuantizers.length];
-    const quantizerSlug = quantizer.toLowerCase().replace("+", "plus");
-    const modelSlug = `${spec.family}-${spec.scale}`;
-
-    return {
-      layer_range: `${start}-${end}`,
-      quantizer,
-      hf_source: `hf://your-org/quant-layer-bank/${modelSlug}/${quantizerSlug}/layers-${start}-${end}`,
-      reason: getSegmentReason(payload.task_type, index)
-    };
-  });
-}
-
-function getSegmentReason(taskType, index) {
-  const reasons = {
-    long_context_qa: ["保留 early attention 稳定性", "降低中间层显存", "强化长上下文聚合", "平衡解码延迟"],
-    code_generation: ["保留 token pattern 表征", "优化 MLP 层吞吐", "提升语法一致性", "约束 decode latency"],
-    math_reasoning: ["保留推理链路表征", "降低激活漂移", "强化后段 logits 稳定性", "控制误差累积"],
-    instruction_following: ["稳定指令解析", "压缩中间专家路径", "保留对齐层敏感性", "优化服务延迟"],
-    domain_rag: ["保留检索证据融合", "降低领域层冗余", "强化引用一致性", "控制上下文成本"],
-    custom: ["按任务代理指标保留", "按显存约束压缩", "按延迟目标重排", "按质量下限校准"]
-  };
-
-  return (reasons[taskType] || reasons.custom)[index] || "按 Pareto 目标选择";
-}
-
-function buildMockResult(payload) {
-  const selectedModel = pickBestModel(payload);
-  const composition = buildLayerComposition(selectedModel, payload);
-  const memoryRatio = Math.min(0.92, 0.38 + payload.constraints.memory_cap_gb / 120);
-  const latencyIndex = Math.min(9.7, 5.2 + payload.constraints.latency_priority * 0.42);
-  const qualityRetention = Math.min(99, payload.constraints.quality_floor_percent + 0.8);
-
-  return {
-    config_version: "0.1.0-demo",
-    job_id: `qnas-${Date.now().toString(36)}`,
-    status: "demo_completed",
-    project_name: payload.project_name,
-    target_task: {
-      type: payload.task_type,
-      label: payload.task_label,
-      description: payload.task_description,
-      dataset_hint: payload.dataset_hint
-    },
-    selected_base_model: selectedModel,
-    objective: {
-      hardware: payload.constraints.hardware,
-      memory_cap_gb: payload.constraints.memory_cap_gb,
-      latency_priority: payload.constraints.latency_priority,
-      quality_floor_percent: payload.constraints.quality_floor_percent
-    },
-    estimated_metrics: {
-      memory_footprint_gb: Number((payload.constraints.memory_cap_gb * memoryRatio).toFixed(1)),
-      latency_index: Number(latencyIndex.toFixed(1)),
-      quality_retention_percent: Number(qualityRetention.toFixed(1))
-    },
-    layer_composition: composition,
-    hf_pull_manifest: {
-      namespace: "your-org/quant-layer-bank",
-      pull_strategy: "download selected linear-layer shards only",
-      shards: composition.map((segment) => segment.hf_source)
-    },
-    reproducibility: {
-      search_seed: 20260419,
-      evaluator: "replace-with-your-server-side-evaluator",
-      notes: "This local result is a front-end mock. Replace it with the real NAS service response."
-    }
-  };
-}
-
-function wait(ms) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-async function runLocalDemoSearch(payload) {
-  for (const [label, percent] of searchSteps) {
-    setProgress(percent, label);
-    await wait(420);
-  }
-
-  return buildMockResult(payload);
-}
-
-async function submitToNasService(endpoint, payload) {
-  setProgress(12, "正在提交到远端 NAS 服务");
-
+  const isAppsScript = endpoint.includes("script.google.com");
   const response = await fetch(endpoint, {
     method: "POST",
+    mode: isAppsScript ? "no-cors" : "cors",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": isAppsScript ? "text/plain;charset=utf-8" : "application/json"
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      ...payload,
+      website: document.querySelector("#website").value
+    })
   });
 
-  if (!response.ok) {
-    throw new Error(`NAS API returned ${response.status}`);
+  if (!isAppsScript && !response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.error || `Request API returned ${response.status}`);
   }
 
-  setProgress(100, "远端 NAS 服务已返回结果");
-  return response.json();
+  const serverReceipt = isAppsScript ? null : await response.json();
+  setProgress(100, "需求已发送，请检查确认邮件");
+
+  return {
+    schema_version: "1.0",
+    request_id: serverReceipt?.request_id || payload.request_id,
+    status: serverReceipt?.status || "submitted",
+    submitted_at: serverReceipt?.submitted_at || new Date().toISOString(),
+    contact_email: payload.contact_email,
+    deliverable: payload.deliverable,
+    message: "请求已发送。确认邮件到达后即表示 Google Sheet 已成功记录本次需求。",
+    request: payload
+  };
 }
 
-function renderResult(result) {
-  state.lastResult = result;
+function appendMetric(label, value) {
+  const item = document.createElement("span");
+  const strong = document.createElement("strong");
+  strong.textContent = value;
+  item.append(strong, document.createTextNode(label));
+  elements.resultMetrics.append(item);
+}
+
+function renderReceipt(receipt) {
+  state.lastResult = receipt;
   elements.resultSection.hidden = false;
-  elements.resultJson.textContent = JSON.stringify(result, null, 2);
-
-  const status = result.status === "demo_completed" ? "本地演示模式已生成可替换的配置结构。" : "远端 NAS 服务已返回配置。";
-  elements.resultCopy.textContent = `${status} 你可以复制或下载 JSON，然后交给后端/推理侧按 HF manifest 拉取对应线性层。`;
-
-  const metrics = result.estimated_metrics || {};
-  elements.resultMetrics.innerHTML = `
-    <span><strong>${result.selected_base_model || "Server selected"}</strong>Base Model</span>
-    <span><strong>${metrics.memory_footprint_gb ?? "--"} GB</strong>Memory</span>
-    <span><strong>${metrics.latency_index ?? "--"}/10</strong>Latency Index</span>
-    <span><strong>${metrics.quality_retention_percent ?? "--"}%</strong>Quality Retention</span>
-  `;
-
+  elements.resultJson.textContent = JSON.stringify(receipt, null, 2);
+  elements.resultCopy.textContent = `请求 ${receipt.request_id} 已发送。确认邮件到达后即表示需求已写入处理队列；结果完成后会发送到 ${receipt.contact_email}。`;
+  elements.resultMetrics.replaceChildren();
+  appendMetric("Request ID", receipt.request_id);
+  appendMetric("Status", receipt.status.toUpperCase());
+  appendMetric("Delivery", "JSON via email");
+  appendMetric("Email", receipt.contact_email);
   elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -288,10 +296,8 @@ async function copyResult() {
   }
 
   const content = JSON.stringify(state.lastResult, null, 2);
-
   try {
     await navigator.clipboard.writeText(content);
-    elements.copyButton.textContent = "已复制";
   } catch {
     const textarea = document.createElement("textarea");
     textarea.value = content;
@@ -299,11 +305,11 @@ async function copyResult() {
     textarea.select();
     document.execCommand("copy");
     textarea.remove();
-    elements.copyButton.textContent = "已复制";
   }
 
+  elements.copyButton.textContent = "已复制";
   window.setTimeout(() => {
-    elements.copyButton.textContent = "复制配置 JSON";
+    elements.copyButton.textContent = "复制请求 JSON";
   }, 1600);
 }
 
@@ -317,14 +323,13 @@ function downloadResult() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${state.lastResult.job_id || "quantnas-config"}.json`;
+  link.download = `${state.lastResult.request_id || "quantnas-request"}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
 
 function setupRevealAnimation() {
   const revealItems = document.querySelectorAll(".reveal");
-
   if (!("IntersectionObserver" in window)) {
     revealItems.forEach((item) => item.classList.add("is-visible"));
     return;
@@ -348,14 +353,12 @@ function setupRevealAnimation() {
 function setupHeroLossAnimation() {
   const lossValue = document.querySelector("#hero-loss");
   const traceSteps = document.querySelectorAll(".trace-step");
-
   if (!lossValue || traceSteps.length === 0) {
     return;
   }
 
   const values = [1.86, 1.48, 1.12, 0.83, 0.61, 0.42];
   let index = 0;
-
   const tick = () => {
     lossValue.textContent = values[index].toFixed(2);
     traceSteps.forEach((step, stepIndex) => {
@@ -377,33 +380,59 @@ function setupForm() {
   });
 
   elements.form.addEventListener("input", updatePreview);
-  elements.latencyInput.addEventListener("change", updatePreview);
-  elements.qualityInput.addEventListener("change", updatePreview);
-
+  elements.form.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && state.currentStep < elements.formSteps.length && event.target.tagName !== "TEXTAREA") {
+      event.preventDefault();
+      showFormStep(state.currentStep + 1, { validateCurrent: true });
+    }
+  });
+  elements.form.querySelectorAll("[data-next-step]").forEach((button) => {
+    button.addEventListener("click", () => showFormStep(state.currentStep + 1, { validateCurrent: true }));
+  });
+  elements.form.querySelectorAll("[data-previous-step]").forEach((button) => {
+    button.addEventListener("click", () => showFormStep(state.currentStep - 1));
+  });
+  elements.wizardSteps.forEach((button) => {
+    button.addEventListener("click", () => showFormStep(Number(button.dataset.stepTarget)));
+  });
   elements.form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (state.currentStep !== elements.formSteps.length) {
+      showFormStep(state.currentStep + 1, { validateCurrent: true });
+      return;
+    }
+    if (!validateStep(state.currentStep)) {
+      return;
+    }
+
     const submitButton = elements.form.querySelector(".submit-button");
-    const endpoint = document.querySelector("#apiEndpoint").value.trim();
+    const submitLabel = submitButton.querySelector("span");
     const payload = getFormPayload();
 
+    if (document.querySelector("#website").value) {
+      setProgress(0, "提交未通过校验");
+      return;
+    }
+
     submitButton.disabled = true;
-    submitButton.querySelector("span").textContent = "搜索中...";
-    setProgress(6, endpoint ? "准备提交远端任务" : "启动本地演示搜索");
+    submitLabel.textContent = "提交中...";
+    setProgress(8, "正在校验需求字段");
 
     try {
-      const result = endpoint ? await submitToNasService(endpoint, payload) : await runLocalDemoSearch(payload);
-      renderResult(result);
+      const receipt = await submitRequest(payload);
+      renderReceipt(receipt);
     } catch (error) {
       setProgress(0, `提交失败：${error.message}`);
     } finally {
       submitButton.disabled = false;
-      submitButton.querySelector("span").textContent = "启动 NAS 搜索";
+      submitLabel.textContent = "提交搜索需求";
     }
   });
 
   elements.copyButton.addEventListener("click", copyResult);
   elements.downloadButton.addEventListener("click", downloadResult);
+  showFormStep(1);
   updatePreview();
 }
 

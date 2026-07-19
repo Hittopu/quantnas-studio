@@ -73,6 +73,32 @@ async function handleApi(request, response) {
   }
 }
 
+async function handleRequestSubmission(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Only POST is supported for /api/requests." });
+    return;
+  }
+
+  try {
+    const body = await readRequestBody(request);
+    const payload = body ? JSON.parse(body) : {};
+
+    if (!payload.request_id || !payload.contact_email || !payload.privacy_consent) {
+      sendJson(response, 400, { error: "request_id, contact_email and privacy_consent are required." });
+      return;
+    }
+
+    sendJson(response, 202, {
+      request_id: payload.request_id,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+      local_preview: true
+    });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message });
+  }
+}
+
 async function handleStatic(request, response) {
   const requestUrl = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   const urlPath = decodeURIComponent(requestUrl.pathname);
@@ -105,6 +131,11 @@ async function handleStatic(request, response) {
 }
 
 const server = createServer((request, response) => {
+  if (request.url?.startsWith("/api/requests")) {
+    handleRequestSubmission(request, response);
+    return;
+  }
+
   if (request.url?.startsWith("/api/nas/search")) {
     handleApi(request, response);
     return;
