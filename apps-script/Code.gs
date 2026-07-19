@@ -32,7 +32,7 @@ var REQUEST_HEADERS = [
 
 var DEFAULT_CONFIG = {
   SENDER_NAME: "QuantNAS Studio",
-  ADMIN_EMAILS: "Jiaqizhao0455@outlook.com,3231487539@qq.com",
+  ADMIN_EMAILS: "Jiaqizhao0455@outlook.com,zhuangjia@stu.hit.edu.cn",
   REPLY_TO: "",
   SITE_URL: "https://hittopu.github.io/quantnas-studio/"
 };
@@ -263,6 +263,26 @@ function validatePayload_(payload) {
   if (payload.privacy_consent !== true) {
     throw new Error("privacy_consent is required.");
   }
+
+  var models = payload.candidate_base_models || [];
+  var quantizers = payload.quantized_layer_sources || [];
+  if (models.length !== 1) {
+    throw new Error("Exactly one base model is required.");
+  }
+  if (payload.search_mode === "fixed_method_mixed_bit") {
+    if (quantizers.length !== 1 || payload.target_precision !== "avg_3bit") {
+      throw new Error("Fixed-method search requires one quantizer and an average 3-bit target.");
+    }
+  } else if (payload.search_mode === "fixed_bit_mixed_method") {
+    if (quantizers.length < 2 || ["2bit", "3bit", "4bit"].indexOf(payload.target_precision) === -1) {
+      throw new Error("Fixed-bit search requires at least two quantizers and a fixed 2/3/4-bit target.");
+    }
+  } else {
+    throw new Error("Invalid search_mode.");
+  }
+  if (payload.task_type === "other" && !payload.dataset_url) {
+    throw new Error("dataset_url is required for an Other task.");
+  }
 }
 
 function buildRequestRow_(payload) {
@@ -411,6 +431,8 @@ function getConfig_() {
       config[String(row[0]).trim()] = String(row[1] || "").trim();
     }
   });
+  config.ADMIN_EMAILS = String(config.ADMIN_EMAILS || "")
+    .replace(/3231487539@qq\.com/gi, "zhuangjia@stu.hit.edu.cn");
   return config;
 }
 

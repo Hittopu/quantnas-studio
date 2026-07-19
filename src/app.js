@@ -73,6 +73,7 @@ function createRequestId() {
 const state = {
   selectedModel: "Qwen3-8B",
   selectedQuantizers: new Set(quantizers),
+  fixedMethodQuantizer: "ParoQuant",
   requestId: createRequestId(),
   lastResult: null,
   currentStep: 1,
@@ -87,10 +88,12 @@ const elements = {
   modelChips: document.querySelector("#model-chips"),
   quantizerChips: document.querySelector("#quantizer-chips"),
   preview: document.querySelector("#payload-preview"),
-  latencyInput: document.querySelector("#latencyPriority"),
-  latencyValue: document.querySelector("#latencyValue"),
-  qualityInput: document.querySelector("#qualityFloor"),
-  qualityValue: document.querySelector("#qualityValue"),
+  liveSummary: document.querySelector("#live-summary"),
+  searchMode: document.querySelector("#searchMode"),
+  searchModeHelp: document.querySelector("#search-mode-help"),
+  targetPrecision: document.querySelector("#targetPrecision"),
+  quantizerLegend: document.querySelector("#quantizer-legend"),
+  quantizerHelp: document.querySelector("#quantizer-help"),
   languageToggle: document.querySelector("#language-toggle"),
   projectName: document.querySelector("#projectName"),
   datasetUrl: document.querySelector("#datasetUrl"),
@@ -124,7 +127,7 @@ const staticTranslations = {
   "从任务需求到 Hugging Face 拉取清单": "From task request to Hugging Face manifest",
   "页面先收集任务、模型池、量化方法和资源约束；后端可以接入真实 NAS 服务，返回组合配置、线性层来源和复现实验参数。": "The questionnaire collects the task, model pool, quantization methods, and resource constraints. Our NAS backend returns the composition config, per-linear sources, and reproducible evaluation metadata.",
   "任务画像": "Task Profile",
-  "收集任务类型、数据域、指标偏好、质量下限、显存和延迟约束。": "Select a benchmark and specify evaluation, quality, memory, and latency constraints.",
+  "收集目标 benchmark、模型、搜索空间、硬件约束与优化偏好。": "Collect the target benchmark, model, search space, hardware constraints, and optimization preference.",
   "搜索空间构建": "Search Space",
   "在 Qwen2.5、Qwen3、Llama2、Llama3.1 等模型的量化线性层池中构造候选。": "Build candidates from quantized linear-layer banks for Qwen and Llama model families.",
   "NAS 评估": "NAS Evaluation",
@@ -151,7 +154,7 @@ const staticTranslations = {
   "选择“其他任务”时必须提供网址。": "Required when Other task is selected.",
   "下一步": "Continue",
   "选择候选模型与量化层来源": "Choose one base model and the quantized sources",
-  "基座模型只能单选，量化线性层来源可以多选。": "Select one base model and one or more quantization sources for the search space.",
+  "基座模型单选；量化方法和精度选项会根据搜索模式自动调整。": "Select one base model. Quantization methods and precision options adapt to the search mode.",
   "搜索模式": "Search mode",
   "固定方法，混合 2/3/4bit": "Fixed method, search 2/3/4-bit",
   "固定 bit，混合量化方法": "Fixed bit, search quantization methods",
@@ -161,9 +164,10 @@ const staticTranslations = {
   "自定义约束": "Custom constraint",
   "候选基座模型": "Base model",
   "量化线性层来源": "Quantized layer sources",
+  "量化方法": "Quantization method",
   "上一步": "Back",
-  "设定硬件、质量与交付约束": "Set hardware, quality, and delivery constraints",
-  "这些约束会决定我们优先搜索更低显存、更高质量或更低延迟的配置。": "These constraints guide the search toward lower memory, higher quality, or lower latency.",
+  "设定硬件、优化偏好与交付内容": "Set hardware, optimization preference, and deliverables",
+  "选择硬件限制和优化方向，我们会据此筛选更合适的候选配置。": "Choose the hardware limit and optimization direction used to rank candidate configurations.",
   "目标硬件": "Target hardware",
   "显存上限": "Memory limit",
   "交付物": "Deliverable",
@@ -171,8 +175,15 @@ const staticTranslations = {
   "HF 拉取清单": "HF manifest",
   "部署 recipe": "Deployment recipe",
   "全部": "All deliverables",
-  "延迟优先级": "Latency priority",
-  "质量保留下限": "Minimum quality retention",
+  "优化偏好": "Optimization preference",
+  "均衡": "Balanced",
+  "兼顾质量、显存与速度": "Balance quality, memory, and speed",
+  "质量优先": "Quality first",
+  "优先保留任务性能": "Prioritize task performance",
+  "显存优先": "Memory first",
+  "优先降低模型占用": "Prioritize a smaller memory footprint",
+  "延迟优先": "Latency first",
+  "优先降低推理延迟": "Prioritize lower inference latency",
   "确认需求并留下结果邮箱": "Review the request and enter your email",
   "提交后会收到确认邮件，正式结果以 JSON 附件交付。": "You will receive a confirmation email, followed by the final JSON as an attachment.",
   "结果接收邮箱": "Result email",
@@ -180,12 +191,15 @@ const staticTranslations = {
   "提交后请检查确认邮件。正式结果会以 JSON 附件发送，请保留邮件中的请求编号。": "Check your confirmation email after submission and keep the request ID for future correspondence.",
   "提交搜索需求": "Submit request",
   "请求预览": "Request Preview",
+  "请求摘要": "Request Summary",
+  "提交状态": "Submission Status",
+  "高级请求 JSON": "Advanced request JSON",
   "填写需求后提交，我们会通过邮件确认。": "Complete the questionnaire and submit it to receive an email confirmation.",
   "需求已进入处理队列": "Your request is in the processing queue",
   "请检查确认邮件并保存请求编号。搜索完成后，结果 JSON 会发送到提交邮箱。": "Check the confirmation email and keep your request ID. The result JSON will be sent to the submitted email address.",
   "复制请求 JSON": "Copy request JSON",
   "下载 request.json": "Download request.json",
-  "这里会集中放置项目论文、开源代码、实验室主页和联系邮箱。GitHub 与 arXiv 暂时使用占位地址，后续替换为正式链接即可。": "Project papers, source code, lab information, and contact details are collected here.",
+  "这里集中放置项目源码、实验室主页和联系邮箱。论文公开后会补充正式链接。": "Project source code, lab information, and contact details are collected here. The paper link will be added after release.",
   "项目源码与 GitHub Pages 部署仓库": "Source code and GitHub Pages repository",
   "占位链接，等待正式论文": "Placeholder link pending the paper release",
   "如果你想试用量化层组合搜索、复现实验或讨论合作，可以通过以下邮箱联系。": "Contact us to try quantized layer composition search, reproduce experiments, or discuss collaboration.",
@@ -231,7 +245,7 @@ function applyLanguage(language) {
   elements.languageToggle.textContent = language === "en" ? "中文" : "English";
   elements.languageToggle.setAttribute("aria-label", language === "en" ? "切换到中文" : "Switch to English");
   updateDatasetUrlRequirement();
-  updatePreview();
+  updateSearchModeControls();
   if (state.currentStep === elements.formSteps.length) {
     renderReviewSummary();
   }
@@ -269,20 +283,79 @@ function renderSingleChipGroup(container, items, selectedValue, onSelect) {
     button.setAttribute("aria-checked", (selectedValue === item).toString());
     button.addEventListener("click", () => {
       onSelect(item);
-      renderSingleChipGroup(container, items, state.selectedModel, onSelect);
+      renderSingleChipGroup(container, items, item, onSelect);
       updatePreview();
     });
     container.append(button);
   });
 }
 
-function toggleSelected(set, value) {
-  if (set.has(value) && set.size > 1) {
+function toggleSelected(set, value, minimumSize = 1) {
+  if (set.has(value) && set.size > minimumSize) {
     set.delete(value);
     return;
   }
 
   set.add(value);
+}
+
+function getActiveQuantizers() {
+  if (elements.searchMode.value === "fixed_method_mixed_bit") {
+    return [state.fixedMethodQuantizer];
+  }
+  return Array.from(state.selectedQuantizers);
+}
+
+function renderQuantizerChoices() {
+  if (elements.searchMode.value === "fixed_method_mixed_bit") {
+    renderSingleChipGroup(elements.quantizerChips, quantizers, state.fixedMethodQuantizer, (quantizer) => {
+      state.fixedMethodQuantizer = quantizer;
+    });
+    return;
+  }
+
+  renderChipGroup(elements.quantizerChips, quantizers, state.selectedQuantizers, (quantizer) => {
+    toggleSelected(state.selectedQuantizers, quantizer, 2);
+  });
+}
+
+function updateSearchModeControls() {
+  const isBitMix = elements.searchMode.value === "fixed_method_mixed_bit";
+  const previousPrecision = elements.targetPrecision.value;
+  const precisionOptions = isBitMix
+    ? [{ value: "avg_3bit", en: "Average 3-bit", zh: "平均约 3bit" }]
+    : [
+        { value: "2bit", en: "Fixed 2-bit", zh: "固定 2bit" },
+        { value: "3bit", en: "Fixed 3-bit", zh: "固定 3bit" },
+        { value: "4bit", en: "Fixed 4-bit", zh: "固定 4bit" }
+      ];
+
+  elements.targetPrecision.replaceChildren();
+  precisionOptions.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.value;
+    option.textContent = item[state.language];
+    elements.targetPrecision.append(option);
+  });
+  const validPrevious = precisionOptions.some((item) => item.value === previousPrecision);
+  elements.targetPrecision.value = validPrevious ? previousPrecision : (isBitMix ? "avg_3bit" : "3bit");
+
+  if (state.language === "en") {
+    elements.searchModeHelp.textContent = isBitMix
+      ? "Choose one quantization method; NAS searches its 2/3/4-bit layers under an average 3-bit budget."
+      : "Choose a fixed bit width and at least two quantization methods.";
+    elements.quantizerLegend.textContent = isBitMix ? "Quantization method" : "Quantization methods";
+    elements.quantizerHelp.textContent = isBitMix ? "Select exactly one method." : "Select at least two methods.";
+  } else {
+    elements.searchModeHelp.textContent = isBitMix
+      ? "选择一种量化方法，NAS 在平均 3bit 约束下搜索其 2/3/4bit 线性层。"
+      : "选择固定 bit，并从至少两种量化方法中搜索组合。";
+    elements.quantizerLegend.textContent = isBitMix ? "量化方法" : "量化方法（多选）";
+    elements.quantizerHelp.textContent = isBitMix ? "请选择一种方法。" : "请至少选择两种方法。";
+  }
+
+  renderQuantizerChoices();
+  updatePreview();
 }
 
 function getFormPayload() {
@@ -302,12 +375,11 @@ function getFormPayload() {
     dataset_hint: formData.get("datasetHint") || "",
     dataset_url: formData.get("datasetUrl") || "",
     candidate_base_models: [state.selectedModel],
-    quantized_layer_sources: Array.from(state.selectedQuantizers),
+    quantized_layer_sources: getActiveQuantizers(),
     constraints: {
       hardware: formData.get("hardware"),
       memory_cap_gb: Number(formData.get("memoryCap")),
-      latency_priority: Number(formData.get("latencyPriority")),
-      quality_floor_percent: Number(formData.get("qualityFloor"))
+      optimization_preference: formData.get("optimizationPreference")
     },
     deliverable: formData.get("deliverable"),
     contact_email: formData.get("contactEmail") || "",
@@ -334,9 +406,9 @@ function updateDatasetUrlRequirement() {
 }
 
 function updatePreview() {
-  elements.latencyValue.textContent = elements.latencyInput.value;
-  elements.qualityValue.textContent = elements.qualityInput.value;
-  elements.preview.textContent = JSON.stringify(getFormPayload(), null, 2);
+  const payload = getFormPayload();
+  elements.preview.textContent = JSON.stringify(payload, null, 2);
+  renderLiveSummary(payload);
 }
 
 function appendReviewItem(container, label, value) {
@@ -344,7 +416,7 @@ function appendReviewItem(container, label, value) {
   const term = document.createElement("span");
   const detail = document.createElement("strong");
   term.textContent = label;
-  detail.textContent = value || "未填写";
+  detail.textContent = value || (state.language === "en" ? "Not provided" : "未填写");
   item.append(term, detail);
   container.append(item);
 }
@@ -354,11 +426,29 @@ function getSelectedOptionText(id) {
   return select?.selectedOptions?.[0]?.textContent?.trim() || "";
 }
 
+function getOptimizationPreferenceText() {
+  const selected = elements.form.querySelector('input[name="optimizationPreference"]:checked');
+  return selected?.closest("label")?.querySelector("strong")?.textContent?.trim() || "";
+}
+
+function renderLiveSummary(payload) {
+  const labels = state.language === "en"
+    ? { task: "Task", model: "Model", search: "Search", precision: "Precision", sources: "Sources", preference: "Preference" }
+    : { task: "任务", model: "模型", search: "搜索", precision: "精度", sources: "方法", preference: "偏好" };
+  elements.liveSummary.replaceChildren();
+  appendReviewItem(elements.liveSummary, labels.task, payload.task_label);
+  appendReviewItem(elements.liveSummary, labels.model, payload.candidate_base_models[0]);
+  appendReviewItem(elements.liveSummary, labels.search, getSelectedOptionText("searchMode"));
+  appendReviewItem(elements.liveSummary, labels.precision, getSelectedOptionText("targetPrecision"));
+  appendReviewItem(elements.liveSummary, labels.sources, payload.quantized_layer_sources.join(", "));
+  appendReviewItem(elements.liveSummary, labels.preference, getOptimizationPreferenceText());
+}
+
 function renderReviewSummary() {
   const payload = getFormPayload();
   const labels = state.language === "en"
-    ? { task: "Task", mode: "Search mode", model: "Base model", sources: "Quantized sources", constraints: "Constraints", delivery: "Deliverable" }
-    : { task: "任务", mode: "搜索方式", model: "基座模型", sources: "量化来源", constraints: "资源约束", delivery: "交付" };
+    ? { task: "Task", mode: "Search mode", model: "Base model", sources: "Quantized sources", constraints: "Constraints", preference: "Preference", delivery: "Deliverable" }
+    : { task: "任务", mode: "搜索方式", model: "基座模型", sources: "量化来源", constraints: "资源约束", preference: "优化偏好", delivery: "交付" };
   elements.reviewSummary.replaceChildren();
   appendReviewItem(elements.reviewSummary, labels.task, payload.task_label);
   appendReviewItem(elements.reviewSummary, labels.mode, getSelectedOptionText("searchMode"));
@@ -369,6 +459,7 @@ function renderReviewSummary() {
     labels.constraints,
     `${getSelectedOptionText("hardware")} · ${payload.constraints.memory_cap_gb} GB · ${getSelectedOptionText("targetPrecision")}`
   );
+  appendReviewItem(elements.reviewSummary, labels.preference, getOptimizationPreferenceText());
   appendReviewItem(elements.reviewSummary, labels.delivery, getSelectedOptionText("deliverable"));
 }
 
@@ -616,15 +707,13 @@ function setupForm() {
   renderSingleChipGroup(elements.modelChips, baseModels, state.selectedModel, (model) => {
     state.selectedModel = model;
   });
-  renderChipGroup(elements.quantizerChips, quantizers, state.selectedQuantizers, (quantizer) => {
-    toggleSelected(state.selectedQuantizers, quantizer);
-  });
 
   elements.form.addEventListener("input", () => {
     updateDatasetUrlRequirement();
     updatePreview();
   });
   elements.projectName.addEventListener("change", updateDatasetUrlRequirement);
+  elements.searchMode.addEventListener("change", updateSearchModeControls);
   elements.languageToggle.addEventListener("click", () => {
     applyLanguage(state.language === "en" ? "zh" : "en");
   });
@@ -681,8 +770,8 @@ function setupForm() {
   elements.copyButton.addEventListener("click", copyResult);
   elements.downloadButton.addEventListener("click", downloadResult);
   updateDatasetUrlRequirement();
+  updateSearchModeControls();
   showFormStep(1);
-  updatePreview();
 }
 
 captureLocalizedContent();

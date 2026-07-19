@@ -933,6 +933,54 @@ section[id] {
   line-height: 1.55;
 }
 
+.preference-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.preference-option {
+  position: relative;
+  display: block;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.54);
+  cursor: pointer;
+}
+
+.preference-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+}
+
+.preference-option > span {
+  display: grid;
+  gap: 5px;
+}
+
+.preference-option strong {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.preference-option small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.preference-option:has(input:checked) {
+  border-color: rgba(28, 117, 102, 0.55);
+  background: rgba(54, 217, 157, 0.14);
+  box-shadow: inset 3px 0 0 #1c7566;
+}
+
 .form-row {
   display: grid;
   gap: 16px;
@@ -1120,6 +1168,53 @@ textarea:focus {
   font-size: 1.3rem;
 }
 
+.live-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.live-summary div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  background: rgba(255, 250, 240, 0.88);
+}
+
+.live-summary span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.live-summary strong {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.payload-details {
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.payload-details summary {
+  padding: 14px 2px 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.payload-details[open] summary {
+  margin-bottom: 12px;
+}
+
 #payload-preview,
 .result-json {
   max-height: 430px;
@@ -1246,7 +1341,7 @@ textarea:focus {
 
 .resource-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1533,7 +1628,7 @@ textarea:focus {
   }
 
   .resource-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1573,6 +1668,11 @@ textarea:focus {
   .result-metrics,
   .resource-grid,
   .contact-card {
+    grid-template-columns: 1fr;
+  }
+
+  .preference-grid,
+  .live-summary {
     grid-template-columns: 1fr;
   }
 

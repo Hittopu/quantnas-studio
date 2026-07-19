@@ -57,7 +57,7 @@
           </div>
           <div class="metric-strip" aria-label="平台能力指标">
             <div>
-              <strong>18+</strong>
+              <strong>9</strong>
               <span>Base Models</span>
             </div>
             <div>
@@ -142,7 +142,7 @@
           <article class="workflow-card reveal">
             <span>01</span>
             <h3>任务画像</h3>
-            <p>收集任务类型、数据域、指标偏好、质量下限、显存和延迟约束。</p>
+            <p>收集目标 benchmark、模型、搜索空间、硬件约束与优化偏好。</p>
           </article>
           <article class="workflow-card reveal">
             <span>02</span>
@@ -259,7 +259,7 @@
               <div class="step-heading">
                 <span>Step 02</span>
                 <h3>选择候选模型与量化层来源</h3>
-                <p>基座模型只能单选，量化线性层来源可以多选。</p>
+                <p>基座模型单选；量化方法和精度选项会根据搜索模式自动调整。</p>
               </div>
 
               <div class="form-row two-columns">
@@ -269,15 +269,12 @@
                     <option value="fixed_method_mixed_bit">固定方法，混合 2/3/4bit</option>
                     <option value="fixed_bit_mixed_method">固定 bit，混合量化方法</option>
                   </select>
+                  <small class="field-help" id="search-mode-help"></small>
                 </label>
                 <label>
                   <span>目标精度</span>
                   <select id="targetPrecision" name="targetPrecision" required>
-                    <option value="2bit">2bit</option>
                     <option value="avg_3bit" selected>平均约 3bit</option>
-                    <option value="3bit">固定 3bit</option>
-                    <option value="4bit">4bit</option>
-                    <option value="custom">自定义约束</option>
                   </select>
                 </label>
               </div>
@@ -288,8 +285,9 @@
               </fieldset>
 
               <fieldset>
-                <legend>量化线性层来源</legend>
+                <legend id="quantizer-legend">量化方法</legend>
                 <div class="chip-grid compact" id="quantizer-chips"></div>
+                <small class="field-help" id="quantizer-help"></small>
               </fieldset>
 
               <div class="step-actions">
@@ -301,8 +299,8 @@
             <section class="form-step" data-form-step="3" hidden>
               <div class="step-heading">
                 <span>Step 03</span>
-                <h3>设定硬件、质量与交付约束</h3>
-                <p>这些约束会决定我们优先搜索更低显存、更高质量或更低延迟的配置。</p>
+                <h3>设定硬件、优化偏好与交付内容</h3>
+                <p>选择硬件限制和优化方向，我们会据此筛选更合适的候选配置。</p>
               </div>
 
               <div class="form-row three-columns">
@@ -338,16 +336,27 @@
                 </label>
               </div>
 
-              <div class="slider-grid">
-                <label class="range-label">
-                  <span>延迟优先级 <strong id="latencyValue">7</strong>/10</span>
-                  <input id="latencyPriority" name="latencyPriority" type="range" min="1" max="10" value="7" />
-                </label>
-                <label class="range-label">
-                  <span>质量保留下限 <strong id="qualityValue">95</strong>%</span>
-                  <input id="qualityFloor" name="qualityFloor" type="range" min="80" max="99" value="95" />
-                </label>
-              </div>
+              <fieldset>
+                <legend>优化偏好</legend>
+                <div class="preference-grid">
+                  <label class="preference-option">
+                    <input name="optimizationPreference" type="radio" value="balanced" checked />
+                    <span><strong>均衡</strong><small>兼顾质量、显存与速度</small></span>
+                  </label>
+                  <label class="preference-option">
+                    <input name="optimizationPreference" type="radio" value="quality_first" />
+                    <span><strong>质量优先</strong><small>优先保留任务性能</small></span>
+                  </label>
+                  <label class="preference-option">
+                    <input name="optimizationPreference" type="radio" value="memory_first" />
+                    <span><strong>显存优先</strong><small>优先降低模型占用</small></span>
+                  </label>
+                  <label class="preference-option">
+                    <input name="optimizationPreference" type="radio" value="latency_first" />
+                    <span><strong>延迟优先</strong><small>优先降低推理延迟</small></span>
+                  </label>
+                </div>
+              </fieldset>
 
               <div class="step-actions">
                 <button class="step-back-button" type="button" data-previous-step><span aria-hidden="true">←</span> 上一步</button>
@@ -398,13 +407,17 @@
 
           <aside class="mission-panel reveal" aria-live="polite">
             <div class="panel-card">
-              <p class="eyebrow">Live Payload</p>
+              <p class="eyebrow">请求摘要</p>
               <h3>请求预览</h3>
-              <pre id="payload-preview">{}</pre>
+              <div class="live-summary" id="live-summary"></div>
+              <details class="payload-details">
+                <summary>高级请求 JSON</summary>
+                <pre id="payload-preview">{}</pre>
+              </details>
             </div>
             <div class="panel-card progress-card" id="progress-card">
               <div class="progress-header">
-                <span>Submission Status</span>
+                <span>提交状态</span>
                 <strong id="progress-percent">0%</strong>
               </div>
               <div class="progress-track">
@@ -440,8 +453,7 @@
             <p class="eyebrow">Research Access</p>
             <h2>Paper &amp; Code</h2>
             <p>
-              这里会集中放置项目论文、开源代码、实验室主页和联系邮箱。GitHub 与 arXiv
-              暂时使用占位地址，后续替换为正式链接即可。
+              这里集中放置项目源码、实验室主页和联系邮箱。论文公开后会补充正式链接。
             </p>
           </div>
 
@@ -455,11 +467,6 @@
               <strong>quantnas-studio.github</strong>
               <small>项目源码与 GitHub Pages 部署仓库</small>
             </a>
-            <a class="resource-card" href="https://arxiv.org/abs/0000.00000" target="_blank" rel="noreferrer">
-              <span class="resource-kicker">arXiv</span>
-              <strong>quantnas-studio.arxiv</strong>
-              <small>占位链接，等待正式论文</small>
-            </a>
           </div>
 
           <div class="contact-card" aria-label="联系方式">
@@ -470,7 +477,7 @@
             </div>
             <div class="email-list">
               <a href="mailto:Jiaqizhao0455@outlook.com">Jiaqizhao0455@outlook.com</a>
-              <a href="mailto:3231487539@qq.com">3231487539@qq.com</a>
+              <a href="mailto:zhuangjia@stu.hit.edu.cn">zhuangjia@stu.hit.edu.cn</a>
             </div>
           </div>
         </div>
