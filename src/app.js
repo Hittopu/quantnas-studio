@@ -90,7 +90,6 @@ const elements = {
   preview: document.querySelector("#payload-preview"),
   liveSummary: document.querySelector("#live-summary"),
   searchMode: document.querySelector("#searchMode"),
-  searchModeHelp: document.querySelector("#search-mode-help"),
   targetPrecision: document.querySelector("#targetPrecision"),
   quantizerLegend: document.querySelector("#quantizer-legend"),
   quantizerHelp: document.querySelector("#quantizer-help"),
@@ -341,15 +340,9 @@ function updateSearchModeControls() {
   elements.targetPrecision.value = validPrevious ? previousPrecision : (isBitMix ? "avg_3bit" : "3bit");
 
   if (state.language === "en") {
-    elements.searchModeHelp.textContent = isBitMix
-      ? "Choose one quantization method; NAS searches its 2/3/4-bit layers under an average 3-bit budget."
-      : "Choose a fixed bit width and at least two quantization methods.";
     elements.quantizerLegend.textContent = isBitMix ? "Quantization method" : "Quantization methods";
     elements.quantizerHelp.textContent = isBitMix ? "Select exactly one method." : "Select at least two methods.";
   } else {
-    elements.searchModeHelp.textContent = isBitMix
-      ? "选择一种量化方法，NAS 在平均 3bit 约束下搜索其 2/3/4bit 线性层。"
-      : "选择固定 bit，并从至少两种量化方法中搜索组合。";
     elements.quantizerLegend.textContent = isBitMix ? "量化方法" : "量化方法（多选）";
     elements.quantizerHelp.textContent = isBitMix ? "请选择一种方法。" : "请至少选择两种方法。";
   }
