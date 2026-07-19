@@ -968,6 +968,10 @@ legend {
   line-height: 1.55;
 }
 
+#dataset-url-field[hidden] {
+  display: none;
+}
+
 input,
 select,
 textarea {
