@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,12 +28,13 @@
           <small>Layer-wise Search for Quantized LLMs</small>
         </span>
       </a>
-      <nav class="nav-links" aria-label="主导航">
+      <nav class="nav-links" aria-label="Main navigation">
         <a href="#workflow">搜索流程</a>
         <a href="#models">模型池</a>
         <a href="#request">提交任务</a>
         <a href="#contact">联系我们</a>
       </nav>
+      <button class="language-toggle" id="language-toggle" type="button" aria-label="切换到中文">中文</button>
       <a class="nav-cta" href="#request">开始搜索</a>
     </header>
 
@@ -220,37 +221,33 @@
                 <p>任务描述越具体，后续搜索空间和评估口径越容易确定。</p>
               </div>
 
-              <div class="form-row two-columns">
-                <label>
-                  <span>任务名称</span>
-                  <input id="projectName" name="projectName" type="text" placeholder="例如：金融长文本问答压缩模型" required />
-                </label>
-                <label>
-                  <span>任务类型</span>
-                  <select id="taskType" name="taskType" required>
-                    <option value="long_context_qa">长上下文问答</option>
-                    <option value="code_generation">代码生成</option>
-                    <option value="math_reasoning">数学推理</option>
-                    <option value="instruction_following">指令遵循</option>
-                    <option value="domain_rag">领域 RAG</option>
-                    <option value="custom">自定义任务</option>
-                  </select>
-                </label>
-              </div>
-
               <label>
-                <span>任务需求描述</span>
-                <textarea id="taskDescription" name="taskDescription" rows="5" placeholder="描述任务目标、输入输出形式、目标指标和你关心的失败案例。" required></textarea>
+                <span>任务名称</span>
+                <select id="projectName" name="projectName" required>
+                  <option value="svamp">SVAMP</option>
+                  <option value="mbpp">MBPP</option>
+                  <option value="gsm8k">GSM8K</option>
+                  <option value="mmlu">MMLU</option>
+                  <option value="wikitext2_ppl">Wikitext2 PPL</option>
+                  <option value="c4_ppl">C4 PPL</option>
+                  <option value="other">其他任务</option>
+                </select>
               </label>
 
               <label>
-                <span>评测数据或领域提示</span>
+                <span>任务需求描述（可选）</span>
+                <textarea id="taskDescription" name="taskDescription" rows="5" placeholder="描述任务目标、输入输出形式、目标指标和你关心的失败案例。"></textarea>
+              </label>
+
+              <label>
+                <span>评测数据或领域提示（可选）</span>
                 <textarea id="datasetHint" name="datasetHint" rows="3" placeholder="例如：内部 dev set 2k 条；指标为 EM/F1；中文金融研报；最大上下文 32k。"></textarea>
               </label>
 
               <label>
-                <span>数据集或任务说明链接（可选）</span>
+                <span>新任务的数据集或说明链接</span>
                 <input id="datasetUrl" name="datasetUrl" type="url" placeholder="https://..." />
+                <small class="field-help" id="dataset-url-help">选择“其他任务”时必须提供网址。</small>
               </label>
 
               <div class="step-actions is-end-aligned">
@@ -262,17 +259,15 @@
               <div class="step-heading">
                 <span>Step 02</span>
                 <h3>选择候选模型与量化层来源</h3>
-                <p>可以多选。我们会根据任务知识损失和正式评估结果筛选组合。</p>
+                <p>基座模型只能单选，量化线性层来源可以多选。</p>
               </div>
 
               <div class="form-row two-columns">
                 <label>
                   <span>搜索模式</span>
                   <select id="searchMode" name="searchMode" required>
-                    <option value="task_aware">任务感知组合搜索</option>
                     <option value="fixed_method_mixed_bit">固定方法，混合 2/3/4bit</option>
                     <option value="fixed_bit_mixed_method">固定 bit，混合量化方法</option>
-                    <option value="custom">由研究团队规划搜索空间</option>
                   </select>
                 </label>
                 <label>

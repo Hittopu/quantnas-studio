@@ -160,6 +160,19 @@ pre {
   border-radius: 999px;
 }
 
+.language-toggle {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(8, 24, 23, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.58);
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .nav-links a:hover,
 .nav-links a:focus-visible {
   background: rgba(8, 24, 23, 0.07);
@@ -949,6 +962,12 @@ legend {
   font-weight: 800;
 }
 
+.field-help {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
 input,
 select,
 textarea {
@@ -1005,7 +1024,8 @@ textarea:focus {
     background 160ms ease;
 }
 
-.choice-chip[aria-pressed="true"] {
+.choice-chip[aria-pressed="true"],
+.choice-chip[aria-checked="true"] {
   border-color: rgba(28, 117, 102, 0.55);
   background: linear-gradient(135deg, rgba(54, 217, 157, 0.24), rgba(57, 200, 232, 0.2));
   color: var(--ink);
@@ -1526,6 +1546,10 @@ textarea:focus {
   .nav-links,
   .nav-cta {
     display: none;
+  }
+
+  .language-toggle {
+    margin-left: auto;
   }
 
   .hero {
