@@ -257,8 +257,8 @@ function validatePayload_(payload) {
   if (!payload.contact_email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.contact_email)) {
     throw new Error("Invalid contact_email.");
   }
-  if (!payload.project_name || !payload.task_description) {
-    throw new Error("project_name and task_description are required.");
+  if (!payload.project_name) {
+    throw new Error("project_name is required.");
   }
   if (payload.privacy_consent !== true) {
     throw new Error("privacy_consent is required.");

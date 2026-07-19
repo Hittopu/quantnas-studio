@@ -35,7 +35,9 @@ const uiText = {
     submit: "Submit request",
     validating: "Validating request fields",
     transmitting: "Securely transmitting request",
+    processing: "Saving the request and sending the confirmation email",
     sent: "Request sent. Please check your confirmation email.",
+    pending: "The request was sent. Google is still processing the response; please use the confirmation email as the final receipt.",
     endpointMissing: "The request channel is not configured yet. Please try again later or contact us by email.",
     receiptMessage: "Your request has been sent. A confirmation email means it was successfully recorded in Google Sheets.",
     receiptCopy: (receipt) => `Request ${receipt.request_id} was sent. Once the confirmation email arrives, it has entered the processing queue. Results will be sent to ${receipt.contact_email}.`,
@@ -51,7 +53,9 @@ const uiText = {
     submit: "提交搜索需求",
     validating: "正在校验需求字段",
     transmitting: "正在加密传输需求",
+    processing: "正在写入需求并发送确认邮件",
     sent: "需求已发送，请检查确认邮件",
+    pending: "请求已发送，Google 仍在处理响应，请以确认邮件作为最终回执。",
     endpointMissing: "需求接收渠道尚未配置，请稍后再试或通过页面底部联系邮箱提交。",
     receiptMessage: "请求已发送。确认邮件到达后即表示需求已成功写入 Google Sheet。",
     receiptCopy: (receipt) => `请求 ${receipt.request_id} 已发送。确认邮件到达后即表示需求已写入处理队列；结果完成后会发送到 ${receipt.contact_email}。`,
@@ -90,6 +94,7 @@ const elements = {
   languageToggle: document.querySelector("#language-toggle"),
   projectName: document.querySelector("#projectName"),
   datasetUrl: document.querySelector("#datasetUrl"),
+  datasetUrlField: document.querySelector("#dataset-url-field"),
   datasetUrlHelp: document.querySelector("#dataset-url-help"),
   progressPercent: document.querySelector("#progress-percent"),
   progressBar: document.querySelector("#progress-bar"),
@@ -316,6 +321,7 @@ function getFormPayload() {
 
 function updateDatasetUrlRequirement() {
   const isOtherTask = elements.projectName.value === "other";
+  elements.datasetUrlField.hidden = !isOtherTask;
   elements.datasetUrl.required = isOtherTask;
   elements.datasetUrlHelp.hidden = !isOtherTask;
   elements.datasetUrl.setCustomValidity("");
@@ -441,7 +447,7 @@ async function submitRequest(payload) {
   setProgress(22, uiText[state.language].transmitting);
 
   const isAppsScript = endpoint.includes("script.google.com");
-  const response = await fetch(endpoint, {
+  const requestPromise = fetch(endpoint, {
     method: "POST",
     mode: isAppsScript ? "no-cors" : "cors",
     headers: {
@@ -451,7 +457,33 @@ async function submitRequest(payload) {
       ...payload,
       website: document.querySelector("#website").value
     })
+  }).then((response) => ({ response })).catch((error) => ({ error }));
+
+  setProgress(55, uiText[state.language].processing);
+  const timeoutPromise = new Promise((resolve) => {
+    window.setTimeout(() => resolve({ timedOut: true }), 18000);
   });
+  const requestResult = await Promise.race([requestPromise, timeoutPromise]);
+
+  if (requestResult.timedOut && isAppsScript) {
+    setProgress(100, uiText[state.language].pending);
+    return {
+      schema_version: "1.0",
+      request_id: payload.request_id,
+      status: "pending_confirmation",
+      submitted_at: new Date().toISOString(),
+      contact_email: payload.contact_email,
+      deliverable: payload.deliverable,
+      message: uiText[state.language].pending,
+      request: payload
+    };
+  }
+
+  if (requestResult.error) {
+    throw requestResult.error;
+  }
+
+  const response = requestResult.response;
 
   if (!isAppsScript && !response.ok) {
     const detail = await response.json().catch(() => ({}));
