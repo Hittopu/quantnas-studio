@@ -325,6 +325,9 @@ function updateDatasetUrlRequirement() {
   elements.datasetUrl.required = isOtherTask;
   elements.datasetUrlHelp.hidden = !isOtherTask;
   elements.datasetUrl.setCustomValidity("");
+  if (!isOtherTask) {
+    elements.datasetUrl.value = "";
+  }
   if (isOtherTask && !elements.datasetUrl.value.trim()) {
     elements.datasetUrl.setCustomValidity(uiText[state.language].otherUrlRequired);
   }
