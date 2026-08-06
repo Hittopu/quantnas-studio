@@ -120,6 +120,7 @@ const staticTranslations = {
   "提交任务": "Submit Request",
   "联系我们": "Contact",
   "开始搜索": "Start Search",
+  "面向量化语言模型的逐层搜索。": "Layer-wise search for quantized language models.",
   "基于 ParoQuant、GPTAQ、SlimLLM、LRQ+ 等量化结果，面向 Qwen、Llama 系列模型进行逐层组合搜索。用户只需要描述任务、约束与评测数据，我们在后端返回最优组合配置文件。": "Compose quantized linear layers from ParoQuant, GPTAQ, SlimLLM, and LRQ+ for Qwen and Llama models. Describe your benchmark and constraints, and we will return the searched configuration.",
   "提交 NAS 任务": "Submit NAS Request",
   "查看工作流": "View Workflow",
@@ -677,23 +678,232 @@ function setupRevealAnimation() {
 
 function setupHeroLossAnimation() {
   const lossValue = document.querySelector("#hero-loss");
+  const trialValue = document.querySelector("#hero-trial");
   const traceSteps = document.querySelectorAll(".trace-step");
-  if (!lossValue || traceSteps.length === 0) {
+  if (!lossValue) {
     return;
   }
 
   const values = [1.86, 1.48, 1.12, 0.83, 0.61, 0.42];
   let index = 0;
+  let trial = 184;
   const tick = () => {
     lossValue.textContent = values[index].toFixed(2);
-    traceSteps.forEach((step, stepIndex) => {
-      step.classList.toggle("is-active", stepIndex === index % traceSteps.length);
-    });
-    index = (index + 1) % values.length;
+    if (trialValue) {
+      trialValue.textContent = String(trial).padStart(4, "0");
+    }
+    if (traceSteps.length > 0) {
+      traceSteps.forEach((step, stepIndex) => {
+        step.classList.toggle("is-active", stepIndex === index % traceSteps.length);
+      });
+    }
+    if (trial >= 9700) {
+      trial = 184;
+      index = 0;
+    } else {
+      trial += index === 0 ? 37 : 37 + index * 3;
+      index = Math.min(index + 1, values.length - 1);
+    }
   };
 
   tick();
-  window.setInterval(tick, 800);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.setInterval(tick, 800);
+  }
+}
+
+function setupNasNetworkCanvas() {
+  const canvas = document.querySelector("#nas-network-canvas");
+  const hero = canvas?.closest(".hero");
+  const context = canvas?.getContext("2d");
+  if (!canvas || !hero || !context) {
+    return;
+  }
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const palette = ["#70f1bd", "#72d9ff", "#f3c969", "#ff7d73"];
+  let width = 0;
+  let height = 0;
+  let nodes = [];
+  let edges = [];
+  let particles = [];
+  let animationFrame = 0;
+  let pointerX = 0;
+  let pointerY = 0;
+  let targetPointerX = 0;
+  let targetPointerY = 0;
+
+  const seededUnit = (seed) => {
+    const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return value - Math.floor(value);
+  };
+
+  const rebuildScene = () => {
+    nodes = [];
+    edges = [];
+    particles = [];
+
+    const columnCount = width < 760 ? 7 : 11;
+    const rowCount = width < 760 ? 7 : 8;
+    const startX = width < 760 ? width * 0.08 : width * 0.38;
+    const endX = width * 1.02;
+    const top = height * 0.1;
+    const bottom = height * 0.88;
+    const columns = [];
+
+    for (let column = 0; column < columnCount; column += 1) {
+      const columnNodes = [];
+      const progress = column / Math.max(columnCount - 1, 1);
+      const x = startX + (endX - startX) * progress;
+
+      for (let row = 0; row < rowCount; row += 1) {
+        const seed = column * 31 + row * 7 + 3;
+        const baseY = top + ((bottom - top) * row) / Math.max(rowCount - 1, 1);
+        const y = baseY + (seededUnit(seed) - 0.5) * Math.min(34, height * 0.045);
+        const node = {
+          x,
+          y,
+          color: palette[(column + row * 2) % palette.length],
+          phase: seededUnit(seed + 9) * Math.PI * 2,
+          size: 2.5 + seededUnit(seed + 16) * 2.8
+        };
+        nodes.push(node);
+        columnNodes.push(node);
+      }
+      columns.push(columnNodes);
+    }
+
+    for (let column = 0; column < columns.length - 1; column += 1) {
+      columns[column].forEach((from, row) => {
+        const offsets = row % 3 === 0 ? [0, 1, -1] : [0, row % 2 === 0 ? 1 : -1];
+        offsets.forEach((offset, offsetIndex) => {
+          const to = columns[column + 1][row + offset];
+          if (to) {
+            edges.push({
+              from,
+              to,
+              strength: offsetIndex === 0 ? 1 : 0.38,
+              phase: seededUnit(column * 53 + row * 11 + offsetIndex) * Math.PI * 2
+            });
+          }
+        });
+      });
+    }
+
+    const particleCount = width < 760 ? 8 : 16;
+    for (let index = 0; index < particleCount; index += 1) {
+      particles.push({
+        edge: Math.floor(seededUnit(index + 41) * edges.length),
+        progress: seededUnit(index + 87),
+        speed: 0.035 + seededUnit(index + 126) * 0.035,
+        color: palette[index % palette.length]
+      });
+    }
+  };
+
+  const resize = () => {
+    const bounds = hero.getBoundingClientRect();
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    width = Math.max(1, bounds.width);
+    height = Math.max(1, bounds.height);
+    canvas.width = Math.round(width * pixelRatio);
+    canvas.height = Math.round(height * pixelRatio);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    rebuildScene();
+  };
+
+  const draw = (timestamp = 0) => {
+    const time = timestamp * 0.001;
+    pointerX += (targetPointerX - pointerX) * 0.035;
+    pointerY += (targetPointerY - pointerY) * 0.035;
+    context.clearRect(0, 0, width, height);
+
+    const offsetX = pointerX * 12;
+    const offsetY = pointerY * 8;
+
+    edges.forEach((edge) => {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 0.9 + edge.phase);
+      context.beginPath();
+      context.moveTo(edge.from.x + offsetX, edge.from.y + offsetY);
+      context.lineTo(edge.to.x + offsetX, edge.to.y + offsetY);
+      context.strokeStyle = `rgba(182, 218, 204, ${0.035 + edge.strength * (0.045 + pulse * 0.035)})`;
+      context.lineWidth = edge.strength > 0.5 ? 0.8 : 0.45;
+      context.stroke();
+    });
+
+    particles.forEach((particle) => {
+      const edge = edges[particle.edge];
+      if (!edge) {
+        return;
+      }
+      if (!reducedMotion.matches) {
+        particle.progress += particle.speed * 0.016;
+        if (particle.progress > 1) {
+          particle.progress = 0;
+          particle.edge = (particle.edge + 17) % edges.length;
+        }
+      }
+      const x = edge.from.x + (edge.to.x - edge.from.x) * particle.progress + offsetX;
+      const y = edge.from.y + (edge.to.y - edge.from.y) * particle.progress + offsetY;
+      context.save();
+      context.shadowBlur = 14;
+      context.shadowColor = particle.color;
+      context.fillStyle = particle.color;
+      context.beginPath();
+      context.arc(x, y, 1.8, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+    });
+
+    nodes.forEach((node) => {
+      const pulse = reducedMotion.matches ? 0.45 : 0.5 + 0.5 * Math.sin(time * 1.15 + node.phase);
+      const x = node.x + offsetX;
+      const y = node.y + offsetY;
+      context.save();
+      context.globalAlpha = 0.38 + pulse * 0.48;
+      context.shadowBlur = 8 + pulse * 11;
+      context.shadowColor = node.color;
+      context.fillStyle = node.color;
+      context.fillRect(x - node.size / 2, y - node.size / 2, node.size, node.size);
+      context.restore();
+    });
+
+    if (!reducedMotion.matches) {
+      animationFrame = window.requestAnimationFrame(draw);
+    }
+  };
+
+  const handlePointerMove = (event) => {
+    const bounds = hero.getBoundingClientRect();
+    targetPointerX = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
+    targetPointerY = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
+  };
+
+  const handlePointerLeave = () => {
+    targetPointerX = 0;
+    targetPointerY = 0;
+  };
+
+  const handleMotionPreference = () => {
+    window.cancelAnimationFrame(animationFrame);
+    draw(performance.now());
+  };
+
+  const handleResize = () => {
+    resize();
+    if (reducedMotion.matches) {
+      draw(performance.now());
+    }
+  };
+
+  resize();
+  draw(performance.now());
+  hero.addEventListener("pointermove", handlePointerMove, { passive: true });
+  hero.addEventListener("pointerleave", handlePointerLeave);
+  window.addEventListener("resize", handleResize, { passive: true });
+  reducedMotion.addEventListener("change", handleMotionPreference);
 }
 
 function setupForm() {
@@ -770,5 +980,6 @@ function setupForm() {
 captureLocalizedContent();
 setupRevealAnimation();
 setupHeroLossAnimation();
+setupNasNetworkCanvas();
 setupForm();
 applyLanguage("en");

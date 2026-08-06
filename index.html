@@ -39,92 +39,64 @@
     </header>
 
     <main id="top">
-      <section class="hero site-shell">
-        <div class="hero-copy reveal">
-          <p class="eyebrow">Post-Quantization NAS Platform</p>
-          <h1 class="hero-title">
-            <span class="title-accent">NAS</span>
-            <span>for your</span>
-            <span class="title-outline">LLM</span>
-          </h1>
-          <p class="hero-lead">
-            基于 ParoQuant、GPTAQ、SlimLLM、LRQ+ 等量化结果，面向 Qwen、Llama
-            系列模型进行逐层组合搜索。用户只需要描述任务、约束与评测数据，我们在后端返回最优组合配置文件。
-          </p>
-          <div class="hero-actions">
-            <a class="primary-button" href="#request">提交 NAS 任务</a>
-            <a class="secondary-button" href="#workflow">查看工作流</a>
-          </div>
-          <div class="metric-strip" aria-label="平台能力指标">
-            <div>
-              <strong>9</strong>
-              <span>Base Models</span>
+      <section class="hero">
+        <canvas id="nas-network-canvas" aria-hidden="true"></canvas>
+        <div class="hero-vignette" aria-hidden="true"></div>
+
+        <div class="hero-inner site-shell">
+          <div class="hero-copy reveal">
+            <p class="eyebrow"><span class="live-dot"></span> Post-Quantization NAS Platform</p>
+            <h1 class="hero-title">
+              <span>QuantNAS</span>
+              <span>Studio</span>
+            </h1>
+            <p class="hero-tagline">面向量化语言模型的逐层搜索。</p>
+            <p class="hero-lead">
+              基于 ParoQuant、GPTAQ、SlimLLM、LRQ+ 等量化结果，面向 Qwen、Llama
+              系列模型进行逐层组合搜索。用户只需要描述任务、约束与评测数据，我们在后端返回最优组合配置文件。
+            </p>
+            <div class="hero-actions">
+              <a class="primary-button" href="#request">提交任务 <span aria-hidden="true">↗</span></a>
+              <a class="secondary-button" href="#workflow">查看工作流</a>
             </div>
-            <div>
-              <strong>4</strong>
-              <span>Quantizers</span>
-            </div>
-            <div>
-              <strong>Layer-wise</strong>
-              <span>Composition</span>
+            <div class="metric-strip" aria-label="平台能力指标">
+              <div><strong>9</strong><span>Base models</span></div>
+              <div><strong>4</strong><span>Quantizers</span></div>
+              <div><strong>252+</strong><span>Linear choices</span></div>
             </div>
           </div>
+
+          <aside class="hero-hud reveal" aria-label="NAS live search status">
+            <div class="hud-header">
+              <span><i></i> Live composition</span>
+              <strong>loss <span id="hero-loss">1.86</span></strong>
+            </div>
+            <div class="hud-model">
+              <span>BASE MODEL</span>
+              <strong>Qwen3-32B</strong>
+              <small>64 layers · 448 linear positions</small>
+            </div>
+            <div class="hud-layers" aria-label="Current layer assignment">
+              <div><span>L08 · q_proj</span><strong class="source-paro">PARO · W3</strong></div>
+              <div><span>L17 · down_proj</span><strong class="source-gptaq">GPTAQ · W2</strong></div>
+              <div><span>L29 · gate_proj</span><strong class="source-slim">SLIM · W4</strong></div>
+              <div><span>L43 · o_proj</span><strong class="source-lrq">LRQ+ · W3</strong></div>
+              <div><span>L58 · up_proj</span><strong class="source-paro">PARO · W2</strong></div>
+            </div>
+            <div class="hud-footer">
+              <span>trial <strong id="hero-trial">0184</strong></span>
+              <span>avg bit <strong>3.00</strong></span>
+              <span class="hud-stage">EVALUATE</span>
+            </div>
+          </aside>
         </div>
 
-        <div class="hero-visual reveal" aria-label="量化层组合可视化">
-          <div class="orbit-card">
-            <div class="orbit-ring ring-one"></div>
-            <div class="orbit-ring ring-two"></div>
-            <div class="core-chip">
-              <span>NAS</span>
-              <strong>Search Core</strong>
-            </div>
-            <div class="layer-token token-a">Qwen2.5-32B</div>
-            <div class="layer-token token-b">Llama3.1-70B</div>
-            <div class="layer-token token-c">SlimLLM</div>
-            <div class="layer-token token-d">LRQ+</div>
-          </div>
-          <div class="search-board">
-            <div class="trace-header">
-              <div>
-                <span class="status-dot"></span>
-                <span>NAS Search Trace</span>
-              </div>
-              <strong>loss <span id="hero-loss">1.86</span> ↓</strong>
-            </div>
-            <div class="search-board-body">
-              <div class="loss-plot" aria-label="NAS 搜索 loss 下降动画">
-                <svg class="loss-svg" viewBox="0 0 260 128" role="img" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="loss-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stop-color="#36d99d" />
-                      <stop offset="55%" stop-color="#39c8e8" />
-                      <stop offset="100%" stop-color="#e5b862" />
-                    </linearGradient>
-                  </defs>
-                  <path class="loss-fill" d="M12 24 C38 38 48 54 70 56 C96 60 102 78 128 76 C158 74 166 92 192 92 C218 92 228 104 248 108 L248 122 L12 122 Z" />
-                  <path class="loss-curve" d="M12 24 C38 38 48 54 70 56 C96 60 102 78 128 76 C158 74 166 92 192 92 C218 92 228 104 248 108" />
-                </svg>
-                <span class="loss-cursor" aria-hidden="true"></span>
-                <div class="loss-axis">
-                  <span>init</span>
-                  <span>best</span>
-                </div>
-              </div>
-
-              <div class="layer-bars compact-bars" aria-label="候选组合摘要">
-                <span style="--w: 74%; --c: var(--mint)">ParoQuant L0-L11</span>
-                <span style="--w: 58%; --c: var(--cyan)">GPTAQ L12-L27</span>
-                <span style="--w: 81%; --c: var(--gold)">SlimLLM L28-L47</span>
-                <span style="--w: 46%; --c: var(--coral)">LRQ+ L48-L63</span>
-              </div>
-            </div>
-            <div class="trace-steps" aria-label="NAS 搜索阶段">
-              <span class="trace-step is-active">Sample</span>
-              <span class="trace-step">Evaluate</span>
-              <span class="trace-step">Mutate</span>
-              <span class="trace-step">Select</span>
-            </div>
+        <div class="model-ticker" aria-label="Supported models and quantizers">
+          <div class="ticker-track">
+            <span>Qwen3-32B</span><i></i><span>Llama3.1-8B</span><i></i><span>ParoQuant</span><i></i>
+            <span>GPTAQ</span><i></i><span>SlimLLM</span><i></i><span>LRQ+</span><i></i><span>Layer-wise NAS</span><i></i>
+            <span>Qwen3-32B</span><i></i><span>Llama3.1-8B</span><i></i><span>ParoQuant</span><i></i>
+            <span>GPTAQ</span><i></i><span>SlimLLM</span><i></i><span>LRQ+</span><i></i><span>Layer-wise NAS</span><i></i>
           </div>
         </div>
       </section>
