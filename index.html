@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="night">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +8,21 @@
       content="QuantNAS Studio helps users submit target tasks and receive NAS-searched layer-composition configs for quantized LLMs."
     />
     <title>QuantNAS Studio | Layer-wise NAS for Quantized LLMs</title>
+    <script>
+      (() => {
+        let savedTheme = null;
+        try {
+          savedTheme = window.localStorage.getItem("quantnas-theme");
+        } catch (error) {
+          savedTheme = null;
+        }
+        const systemTheme = window.matchMedia("(prefers-color-scheme: light)").matches ? "day" : "night";
+        const initialTheme = savedTheme === "day" || savedTheme === "night" ? savedTheme : systemTheme;
+        document.documentElement.dataset.theme = initialTheme;
+        document.documentElement.style.colorScheme = initialTheme === "day" ? "light" : "dark";
+        window.__QUANTNAS_INITIAL_THEME__ = initialTheme;
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,6 +30,10 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./src/styles.css" />
+    <link id="day-theme-stylesheet" rel="stylesheet" href="./src/day-theme.css" />
+    <script>
+      document.querySelector("#day-theme-stylesheet").disabled = document.documentElement.dataset.theme !== "day";
+    </script>
   </head>
   <body>
     <div class="ambient-grid" aria-hidden="true"></div>
@@ -34,12 +53,30 @@
         <a href="#request">提交任务</a>
         <a href="#contact">联系我们</a>
       </nav>
-      <button class="language-toggle" id="language-toggle" type="button" aria-label="切换到中文">中文</button>
+      <div class="header-controls">
+        <button class="language-toggle" id="language-toggle" type="button" aria-label="切换到中文">中文</button>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to day mode" title="Switch to day mode">
+          <svg class="theme-icon theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+          </svg>
+          <svg class="theme-icon theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </button>
+      </div>
       <a class="nav-cta" href="#request">开始搜索</a>
     </header>
 
     <main id="top">
-      <section class="hero">
+      <section class="hero theme-hero">
         <canvas id="nas-network-canvas" aria-hidden="true"></canvas>
         <div class="hero-vignette" aria-hidden="true"></div>
 
@@ -69,7 +106,7 @@
           <aside class="hero-hud reveal" aria-label="NAS live search status">
             <div class="hud-header">
               <span><i></i> Live composition</span>
-              <strong>loss <span id="hero-loss">1.86</span></strong>
+              <strong>loss <span id="hero-loss" data-hero-loss>1.86</span></strong>
             </div>
             <div class="hud-model">
               <span>BASE MODEL</span>

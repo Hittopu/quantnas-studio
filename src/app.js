@@ -63,6 +63,17 @@ const uiText = {
   }
 };
 
+const themeText = {
+  en: {
+    toDay: "Switch to day mode",
+    toNight: "Switch to night mode"
+  },
+  zh: {
+    toDay: "切换到白天模式",
+    toNight: "切换到夜晚模式"
+  }
+};
+
 function createRequestId() {
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   const random = new Uint32Array(1);
@@ -79,6 +90,7 @@ const state = {
   currentStep: 1,
   maxVisitedStep: 1,
   language: "en",
+  theme: window.__QUANTNAS_INITIAL_THEME__ || document.documentElement.dataset.theme || "night",
   localizedTextNodes: [],
   localizedAttributes: []
 };
@@ -94,6 +106,8 @@ const elements = {
   quantizerLegend: document.querySelector("#quantizer-legend"),
   quantizerHelp: document.querySelector("#quantizer-help"),
   languageToggle: document.querySelector("#language-toggle"),
+  themeToggle: document.querySelector("#theme-toggle"),
+  dayThemeStylesheet: document.querySelector("#day-theme-stylesheet"),
   projectName: document.querySelector("#projectName"),
   datasetUrl: document.querySelector("#datasetUrl"),
   datasetUrlField: document.querySelector("#dataset-url-field"),
@@ -244,6 +258,7 @@ function applyLanguage(language) {
   });
   elements.languageToggle.textContent = language === "en" ? "中文" : "English";
   elements.languageToggle.setAttribute("aria-label", language === "en" ? "切换到中文" : "Switch to English");
+  updateThemeControl();
   updateDatasetUrlRequirement();
   updateSearchModeControls();
   if (state.currentStep === elements.formSteps.length) {
@@ -252,6 +267,67 @@ function applyLanguage(language) {
   if (state.lastResult) {
     renderReceipt(state.lastResult, { scroll: false });
   }
+}
+
+function updateThemeControl() {
+  if (!elements.themeToggle) {
+    return;
+  }
+  const isNight = state.theme === "night";
+  const label = isNight ? themeText[state.language].toDay : themeText[state.language].toNight;
+  elements.themeToggle.setAttribute("aria-label", label);
+  elements.themeToggle.setAttribute("title", label);
+  elements.themeToggle.setAttribute("aria-pressed", (!isNight).toString());
+}
+
+function applyTheme(theme, { persist = true, preserveScroll = true } = {}) {
+  const nextTheme = theme === "day" ? "day" : "night";
+  const anchorLine = Math.min(160, window.innerHeight * 0.25);
+  const pageSections = preserveScroll
+    ? Array.from(document.querySelectorAll("#workflow, #models, #request, #result-section:not([hidden]), #contact"))
+    : [];
+  const pageAnchor = pageSections.find((section) => {
+    const bounds = section.getBoundingClientRect();
+    return bounds.top <= anchorLine && bounds.bottom > anchorLine;
+  }) || pageSections
+    .filter((section) => {
+      const bounds = section.getBoundingClientRect();
+      return bounds.top < window.innerHeight && bounds.bottom > 0;
+    })
+    .sort((left, right) => (
+      Math.abs(left.getBoundingClientRect().top - anchorLine) - Math.abs(right.getBoundingClientRect().top - anchorLine)
+    ))[0];
+  const anchorOffset = pageAnchor?.getBoundingClientRect().top;
+  state.theme = nextTheme;
+  document.documentElement.dataset.theme = nextTheme;
+  document.documentElement.style.colorScheme = nextTheme === "day" ? "light" : "dark";
+  if (elements.dayThemeStylesheet) {
+    elements.dayThemeStylesheet.disabled = nextTheme !== "day";
+  }
+  if (persist) {
+    try {
+      window.localStorage.setItem("quantnas-theme", nextTheme);
+    } catch (error) {
+      // Theme persistence is optional when storage is unavailable.
+    }
+  }
+  updateThemeControl();
+  const activeHero = document.querySelector(".theme-hero");
+  activeHero?.querySelectorAll(".reveal").forEach((item) => item.classList.add("is-visible"));
+  document.dispatchEvent(new CustomEvent("quantnas:themechange", { detail: { theme: nextTheme } }));
+  if (pageAnchor && anchorOffset !== undefined) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.scrollBy(0, pageAnchor.getBoundingClientRect().top - anchorOffset);
+      });
+    });
+  }
+}
+
+function setupThemeToggle() {
+  elements.themeToggle?.addEventListener("click", () => {
+    applyTheme(state.theme === "night" ? "day" : "night");
+  });
 }
 
 function renderChipGroup(container, items, selectedSet, onToggle) {
@@ -677,10 +753,10 @@ function setupRevealAnimation() {
 }
 
 function setupHeroLossAnimation() {
-  const lossValue = document.querySelector("#hero-loss");
+  const lossValues = document.querySelectorAll("[data-hero-loss]");
   const trialValue = document.querySelector("#hero-trial");
   const traceSteps = document.querySelectorAll(".trace-step");
-  if (!lossValue) {
+  if (lossValues.length === 0) {
     return;
   }
 
@@ -688,7 +764,9 @@ function setupHeroLossAnimation() {
   let index = 0;
   let trial = 184;
   const tick = () => {
-    lossValue.textContent = values[index].toFixed(2);
+    lossValues.forEach((lossValue) => {
+      lossValue.textContent = values[index].toFixed(2);
+    });
     if (trialValue) {
       trialValue.textContent = String(trial).padStart(4, "0");
     }
@@ -721,7 +799,30 @@ function setupNasNetworkCanvas() {
   }
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const palette = ["#70f1bd", "#72d9ff", "#f3c969", "#ff7d73"];
+  const themePalettes = {
+    night: {
+      nodes: ["#70f1bd", "#72d9ff", "#f3c969", "#ff7d73"],
+      edgeRgb: "182, 218, 204",
+      edgeBase: 0.035,
+      edgePulse: 0.045,
+      edgeRange: 0.035,
+      nodeAlpha: 0.38,
+      nodeAlphaRange: 0.48,
+      shadowBase: 8,
+      shadowRange: 11
+    },
+    day: {
+      nodes: ["#138269", "#168bb3", "#b77912", "#d9564e"],
+      edgeRgb: "18, 83, 73",
+      edgeBase: 0.055,
+      edgePulse: 0.06,
+      edgeRange: 0.045,
+      nodeAlpha: 0.44,
+      nodeAlphaRange: 0.46,
+      shadowBase: 4,
+      shadowRange: 8
+    }
+  };
   let width = 0;
   let height = 0;
   let nodes = [];
@@ -732,6 +833,7 @@ function setupNasNetworkCanvas() {
   let pointerY = 0;
   let targetPointerX = 0;
   let targetPointerY = 0;
+  const getThemePalette = () => themePalettes[document.documentElement.dataset.theme] || themePalettes.night;
 
   const seededUnit = (seed) => {
     const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
@@ -739,6 +841,7 @@ function setupNasNetworkCanvas() {
   };
 
   const rebuildScene = () => {
+    const palette = getThemePalette().nodes;
     nodes = [];
     edges = [];
     particles = [];
@@ -815,6 +918,7 @@ function setupNasNetworkCanvas() {
   };
 
   const draw = (timestamp = 0) => {
+    const palette = getThemePalette();
     const time = timestamp * 0.001;
     pointerX += (targetPointerX - pointerX) * 0.035;
     pointerY += (targetPointerY - pointerY) * 0.035;
@@ -828,7 +932,7 @@ function setupNasNetworkCanvas() {
       context.beginPath();
       context.moveTo(edge.from.x + offsetX, edge.from.y + offsetY);
       context.lineTo(edge.to.x + offsetX, edge.to.y + offsetY);
-      context.strokeStyle = `rgba(182, 218, 204, ${0.035 + edge.strength * (0.045 + pulse * 0.035)})`;
+      context.strokeStyle = `rgba(${palette.edgeRgb}, ${palette.edgeBase + edge.strength * (palette.edgePulse + pulse * palette.edgeRange)})`;
       context.lineWidth = edge.strength > 0.5 ? 0.8 : 0.45;
       context.stroke();
     });
@@ -862,8 +966,8 @@ function setupNasNetworkCanvas() {
       const x = node.x + offsetX;
       const y = node.y + offsetY;
       context.save();
-      context.globalAlpha = 0.38 + pulse * 0.48;
-      context.shadowBlur = 8 + pulse * 11;
+      context.globalAlpha = palette.nodeAlpha + pulse * palette.nodeAlphaRange;
+      context.shadowBlur = palette.shadowBase + pulse * palette.shadowRange;
       context.shadowColor = node.color;
       context.fillStyle = node.color;
       context.fillRect(x - node.size / 2, y - node.size / 2, node.size, node.size);
@@ -898,12 +1002,19 @@ function setupNasNetworkCanvas() {
     }
   };
 
+  const handleThemeChange = () => {
+    window.cancelAnimationFrame(animationFrame);
+    resize();
+    draw(performance.now());
+  };
+
   resize();
   draw(performance.now());
   hero.addEventListener("pointermove", handlePointerMove, { passive: true });
   hero.addEventListener("pointerleave", handlePointerLeave);
   window.addEventListener("resize", handleResize, { passive: true });
   reducedMotion.addEventListener("change", handleMotionPreference);
+  document.addEventListener("quantnas:themechange", handleThemeChange);
 }
 
 function setupForm() {
@@ -981,5 +1092,7 @@ captureLocalizedContent();
 setupRevealAnimation();
 setupHeroLossAnimation();
 setupNasNetworkCanvas();
+setupThemeToggle();
 setupForm();
 applyLanguage("en");
+applyTheme(state.theme, { persist: false, preserveScroll: false });
