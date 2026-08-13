@@ -134,13 +134,22 @@ const staticTranslations = {
   "提交任务": "Submit Request",
   "联系我们": "Contact",
   "开始搜索": "Start Search",
-  "面向量化语言模型的逐层搜索。": "Layer-wise search for quantized language models.",
+  "量化后逐层搜索运行中": "Post-quantization search is live",
+  "面向具体任务，逐线性层选择量化来源，并通过邮件交付可复现的 JSON 配置。": "Choose quantized sources per linear layer for your task, then receive a reproducible JSON configuration by email.",
   "基于 ParoQuant、GPTAQ、SlimLLM、LRQ+ 等量化结果，面向 Qwen、Llama 系列模型进行逐层组合搜索。用户只需要描述任务、约束与评测数据，我们在后端返回最优组合配置文件。": "Compose quantized linear layers from ParoQuant, GPTAQ, SlimLLM, and LRQ+ for Qwen and Llama models. Describe your benchmark and constraints, and we will return the searched configuration.",
   "提交 NAS 任务": "Submit NAS Request",
   "查看工作流": "View Workflow",
   "从任务需求到 Hugging Face 拉取清单": "From task request to Hugging Face manifest",
   "页面先收集任务、模型池、量化方法和资源约束；后端可以接入真实 NAS 服务，返回组合配置、线性层来源和复现实验参数。": "The questionnaire collects the task, model pool, quantization methods, and resource constraints. Our NAS backend returns the composition config, per-linear sources, and reproducible evaluation metadata.",
   "任务画像": "Task Profile",
+  "定义任务": "Define the task",
+  "确定 benchmark、输入输出形式、评估数据与目标指标。": "Specify the benchmark, input and output format, evaluation data, and target metric.",
+  "构建线性层池": "Build the layer bank",
+  "从 Qwen、Llama 与不同量化方法中组合逐层候选。": "Compose per-layer candidates across Qwen, Llama, and multiple quantization methods.",
+  "搜索并正式复测": "Search and validate",
+  "用连续 proxy 产生候选，再以目标 benchmark 与 PPL 复核。": "Generate candidates with a continuous proxy, then validate on the target benchmark and PPL.",
+  "交付可复现配置": "Deliver a reproducible config",
+  "通过邮件返回逐层 source JSON、模型拉取清单与实验元数据。": "Receive the per-layer source JSON, model manifest, and experiment metadata by email.",
   "收集目标 benchmark、模型、搜索空间、硬件约束与优化偏好。": "Collect the target benchmark, model, search space, hardware constraints, and optimization preference.",
   "搜索空间构建": "Search Space",
   "在 Qwen2.5、Qwen3、Llama2、Llama3.1 等模型的量化线性层池中构造候选。": "Build candidates from quantized linear-layer banks for Qwen and Llama model families.",
@@ -149,7 +158,7 @@ const staticTranslations = {
   "配置交付": "Config Delivery",
   "返回 JSON 配置、HF layer pull manifest、部署提示和可复现实验元数据。": "Receive a JSON config, HF layer manifest, deployment notes, and reproducible experiment metadata.",
   "覆盖主流开源大模型家族": "Major open-source model families",
-  "原型里已经预置你们描述的模型与量化器选项，后续可以直接从后端接口或 HF repo manifest 动态加载。": "Choose from the model families and quantizers currently covered by our experiments and layer warehouse.",
+  "当前层仓库覆盖 Qwen 与 Llama 系列，并以统一 source manifest 管理不同方法和 bit 宽度。": "The layer bank covers Qwen and Llama, with one source manifest across quantizers and bit widths.",
   "描述你的目标任务，我们通过邮箱交付配置": "Choose your target benchmark and receive the config by email",
   "提交后系统会生成请求编号并发送确认邮件。我们完成 NAS 搜索与正式评估后， 会把结果 JSON 作为邮件附件发送到你的邮箱。": "After submission, the system creates a request ID and sends a confirmation email. Once NAS search and formal evaluation finish, the result JSON is delivered as an email attachment.",
   "任务画像": "Task Profile",
@@ -576,7 +585,7 @@ function showFormStep(step, { validateCurrent = false } = {}) {
       button.removeAttribute("aria-current");
     }
   });
-  elements.wizardProgressBar.style.width = `${(nextStep / elements.formSteps.length) * 100}%`;
+  elements.wizardProgressBar.style.transform = `scaleX(${nextStep / elements.formSteps.length})`;
 
   if (nextStep === elements.formSteps.length) {
     renderReviewSummary();
@@ -585,7 +594,7 @@ function showFormStep(step, { validateCurrent = false } = {}) {
 
 function setProgress(percent, label) {
   elements.progressPercent.textContent = `${percent}%`;
-  elements.progressBar.style.width = `${percent}%`;
+  elements.progressBar.style.transform = `scaleX(${Math.min(Math.max(percent, 0), 100) / 100})`;
   elements.progressLabel.textContent = label;
 }
 
