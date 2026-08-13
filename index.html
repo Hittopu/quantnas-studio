@@ -135,57 +135,87 @@
             <li class="workflow-step">
               <span class="workflow-marker">01</span>
               <div><h3>定义任务</h3><p>确定 benchmark、输入输出形式、评估数据与目标指标。</p></div>
-              <small>Task spec</small>
             </li>
             <li class="workflow-step">
               <span class="workflow-marker">02</span>
               <div><h3>构建线性层池</h3><p>从 Qwen、Llama 与不同量化方法中组合逐层候选。</p></div>
-              <small>Layer bank</small>
             </li>
             <li class="workflow-step">
               <span class="workflow-marker">03</span>
               <div><h3>搜索并正式复测</h3><p>用连续 proxy 产生候选，再以目标 benchmark 与 PPL 复核。</p></div>
-              <small>Search + rerank</small>
             </li>
             <li class="workflow-step">
               <span class="workflow-marker">04</span>
               <div><h3>交付可复现配置</h3><p>通过邮件返回逐层 source JSON、模型拉取清单与实验元数据。</p></div>
-              <small>JSON via email</small>
             </li>
           </ol>
           <aside class="workflow-output" aria-label="示例输出">
-            <div class="output-header"><span>OUTPUT / CONFIG</span><strong>READY</strong></div>
-            <pre><code>{
+            <div class="output-summary">
+              <span class="output-status"><i></i> 可复现结果</span>
+              <h3>逐线性层来源清单</h3>
+              <p>候选配置经过目标任务与 PPL 正式复测后，以 JSON 附件交付。</p>
+              <dl class="output-metrics">
+                <div><dt>3.00</dt><dd>平均 bit</dd></div>
+                <div><dt>Task + PPL</dt><dd>正式复测</dd></div>
+              </dl>
+            </div>
+            <div class="output-code">
+              <div class="output-header"><span>best_config.json</span><strong>READY</strong></div>
+              <pre><code>{
   "layer.17.q_proj": "paro_w3",
   "layer.17.k_proj": "lrq_w3",
   "layer.18.down_proj": "gptaq_w3"
 }</code></pre>
-            <div class="output-footer"><span>avg bit</span><strong>3.00</strong><span>validated</span><strong>wiki + task</strong></div>
+            </div>
           </aside>
         </div>
       </section>
 
       <section class="site-shell section model-section" id="models">
-        <div class="model-copy reveal">
-          <h2>覆盖主流开源大模型家族</h2>
-          <p>
-            当前层仓库覆盖 Qwen 与 Llama 系列，并以统一 source manifest 管理不同方法和 bit 宽度。
-          </p>
+        <div class="model-intro">
+          <div class="model-copy reveal">
+            <h2>覆盖主流开源大模型家族</h2>
+            <p>
+              当前层仓库覆盖 Qwen 与 Llama 系列，并以统一 source manifest 管理不同方法和 bit 宽度。
+            </p>
+          </div>
+          <dl class="bank-stats reveal">
+            <div><dt>09</dt><dd>基座模型</dd></div>
+            <div><dt>04</dt><dd>量化器</dd></div>
+            <div><dt>252+</dt><dd>线性层选择</dd></div>
+          </dl>
         </div>
         <div class="model-bank reveal" aria-label="支持的模型列表">
-          <div class="model-family model-family-qwen">
-            <div><span>QWEN FAMILY</span><strong>4 models</strong></div>
-            <ul><li>Qwen2.5 7B</li><li>Qwen2.5 32B</li><li>Qwen3 8B</li><li>Qwen3 32B</li></ul>
-          </div>
-          <div class="model-family model-family-llama">
-            <div><span>LLAMA FAMILY</span><strong>5 models</strong></div>
-            <ul><li>Llama2 7B</li><li>Llama2 13B</li><li>Llama2 70B</li><li>Llama3.1 8B</li><li>Llama3.1 70B</li></ul>
-          </div>
-          <dl class="bank-stats">
-            <div><dt>09</dt><dd>Base models</dd></div>
-            <div><dt>04</dt><dd>Quantizers</dd></div>
-            <div><dt>252+</dt><dd>Linear choices</dd></div>
-          </dl>
+          <article class="model-family model-family-qwen">
+            <header class="family-heading">
+              <div><h3>Qwen</h3><p>4 个模型</p></div>
+            </header>
+            <div class="family-versions">
+              <div class="model-generation">
+                <span>Qwen2.5</span>
+                <div class="model-sizes"><span><strong>7B</strong><small>HF</small></span><span><strong>32B</strong><small>HF</small></span></div>
+              </div>
+              <div class="model-generation">
+                <span>Qwen3</span>
+                <div class="model-sizes"><span><strong>8B</strong><small>HF</small></span><span><strong>32B</strong><small>HF</small></span></div>
+              </div>
+            </div>
+          </article>
+          <article class="model-family model-family-llama">
+            <header class="family-heading">
+              <div><h3>Llama</h3><p>5 个模型</p></div>
+            </header>
+            <div class="family-versions">
+              <div class="model-generation">
+                <span>Llama2</span>
+                <div class="model-sizes"><span><strong>7B</strong><small>HF</small></span><span><strong>13B</strong><small>HF</small></span><span><strong>70B</strong><small>HF</small></span></div>
+              </div>
+              <div class="model-generation">
+                <span>Llama3.1</span>
+                <div class="model-sizes"><span><strong>8B</strong><small>HF</small></span><span><strong>70B</strong><small>HF</small></span></div>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
