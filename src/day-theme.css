@@ -403,6 +403,19 @@ html[data-theme="day"] .resource-card {
   background: rgba(255, 255, 255, 0.5);
 }
 
+html[data-theme="day"] .pull-copy {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--ink);
+  box-shadow: 0 18px 54px rgba(25, 76, 67, 0.09);
+}
+
+html[data-theme="day"] .pull-copy code {
+  border-color: rgba(22, 134, 109, 0.22);
+  background: rgba(22, 134, 109, 0.08);
+  color: #0d6e5b;
+}
+
 html[data-theme="day"] .resource-grid {
   background: var(--line);
 }

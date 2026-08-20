@@ -1789,6 +1789,153 @@ textarea:focus {
   }
 }
 
+/* Local recipe reproduction */
+.pull-section {
+  padding-top: 20px;
+}
+
+.pull-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(380px, 1.12fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+.pull-copy,
+.pull-console {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+
+.pull-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(24px, 3vw, 38px);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.pull-copy h2 {
+  max-width: 12ch;
+  margin: 0 0 18px;
+  font-family: "Chivo", "Noto Sans SC", sans-serif;
+  font-size: clamp(2.2rem, 4.5vw, 4.2rem);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+.pull-copy p:not(.panel-kicker):not(.pull-note) {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+  line-height: 1.85;
+}
+
+.pull-copy code {
+  padding: 2px 6px;
+  border: 1px solid rgba(28, 117, 102, 0.2);
+  border-radius: 5px;
+  background: rgba(54, 217, 157, 0.1);
+  color: var(--mint);
+  font-family: "Chivo", monospace;
+  font-size: 0.9em;
+}
+
+.pull-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.pull-actions a,
+.pull-actions button {
+  min-height: 48px;
+}
+
+.pull-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.pull-console {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  background: #0b1715;
+  color: #d7fff0;
+}
+
+.pull-console-header,
+.pull-console-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  border-color: rgba(215, 255, 240, 0.14);
+  color: rgba(215, 255, 240, 0.62);
+  font-family: "Chivo", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pull-console-header {
+  border-bottom: 1px solid rgba(215, 255, 240, 0.14);
+}
+
+.pull-console-footer {
+  border-top: 1px solid rgba(215, 255, 240, 0.14);
+}
+
+.pull-console-header strong,
+.pull-console-footer strong {
+  color: #70f1bd;
+  font-weight: 700;
+}
+
+.pull-console pre {
+  min-height: 255px;
+  margin: 0;
+  padding: 26px 20px;
+  overflow: auto;
+  color: #d7fff0;
+  font-family: "Chivo", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1040px) {
+  .pull-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .pull-section {
+    padding-top: 0;
+  }
+
+  .pull-copy,
+  .pull-console {
+    border-radius: 8px;
+  }
+
+  .pull-copy h2 {
+    max-width: none;
+    font-size: 2.35rem;
+  }
+
+  .pull-console pre {
+    min-height: 225px;
+    font-size: 0.72rem;
+  }
+}
+
 /* Dark research-stage redesign */
 :root {
   --ink: #f3f7f4;

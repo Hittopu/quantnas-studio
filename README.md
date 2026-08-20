@@ -20,6 +20,7 @@ QuantNAS Studio 是一个面向“量化后大模型线性层组合搜索”的�
 - 支持在 Sheet 中粘贴结果 JSON，通过 Gmail 附件发送给用户。
 - 支持复制和下载本次请求 JSON。
 - 页面底部提供实验室主页和 GitHub 仓库入口，论文公开后再补充正式链接。
+- 提供 `Pull & Assemble` 入口，链接到本地执行的 `quantnas-pull` 工具。
 - 页面底部新增 `Contact` 区块，展示联系邮箱。
 
 ## 页面区块
@@ -31,6 +32,7 @@ QuantNAS Studio 是一个面向“量化后大模型线性层组合搜索”的�
 - Quantized Layer Bank：展示当前支持的模型池。
 - Submit Task：提交任务需求，生成 NAS 请求并查看搜索结果。
 - Paper & Code：展示实验室主页和 GitHub 仓库。
+- Pull & Assemble：用户拿到 JSON 后，在本地拉取、校验并组装 ModelScope 切片。
 - Contact：展示联系邮箱，便于合作与试用沟通。
 
 ## 当前资源入口
@@ -39,6 +41,7 @@ QuantNAS Studio 是一个面向“量化后大模型线性层组合搜索”的�
 
 - 实验室主页：`https://miaozhang0525.github.io/aeegroup.html`
 - GitHub 仓库：`https://github.com/Hittopu/quantnas-studio`
+- 本地拉取组装工具：`https://github.com/Hittopu/quantnas-pull`
 
 页面显示文案目前为 `About Our Group` 和 `quantnas-studio.github`。
 

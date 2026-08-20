@@ -41,6 +41,7 @@
       <nav class="nav-links" aria-label="Main navigation">
         <a href="#workflow">搜索流程</a>
         <a href="#models">模型池</a>
+        <a href="#pull">拉取组装</a>
         <a href="#request">提交任务</a>
         <a href="#contact">联系我们</a>
       </nav>
@@ -216,6 +217,43 @@
               </div>
             </div>
           </article>
+        </div>
+      </section>
+
+      <section class="site-shell section pull-section" id="pull">
+        <div class="pull-shell reveal">
+          <div class="pull-copy">
+            <p class="panel-kicker">LOCAL / REPRODUCE</p>
+            <h2>拿到 JSON，拉取并组装模型</h2>
+            <p>
+              <span>QuantNAS Studio 不在浏览器里搬运模型权重。用户可以使用公开的</span>
+              <code>quantnas-pull</code>
+              <span>工具，在自己的机器上按 recipe 拉取所需切片，自动校验并组装成 Hugging Face 模型。</span>
+            </p>
+            <div class="pull-actions">
+              <a class="primary-button" href="https://github.com/Hittopu/quantnas-pull" target="_blank" rel="noreferrer">
+                查看 quantnas-pull <span aria-hidden="true">↗</span>
+              </a>
+              <button class="secondary-button" id="copy-install-command" type="button">复制安装命令</button>
+            </div>
+            <p class="pull-note" id="install-command-status">公开 ModelScope bank 不需要 token；下载和组装都在本地执行。</p>
+          </div>
+          <div class="pull-console" aria-label="quantnas-pull quick start">
+            <div class="pull-console-header">
+              <span>QUICK START</span>
+              <strong>quantnas-pull</strong>
+            </div>
+            <pre><code>python -m pip install "git+https://github.com/Hittopu/quantnas-pull.git"
+
+quantnas-pull plan best_config.json
+quantnas-pull pull best_config.json \
+  --output-dir ./assembled-model
+quantnas-pull verify ./assembled-model</code></pre>
+            <div class="pull-console-footer">
+              <span>ModelScope</span>
+              <strong>public banks · SHA256 verified</strong>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -123,6 +123,10 @@ const elements = {
   downloadButton: document.querySelector("#download-result")
 };
 
+const copyInstallCommandButton = document.querySelector("#copy-install-command");
+const installCommandStatus = document.querySelector("#install-command-status");
+const installCommand = 'python -m pip install "git+https://github.com/Hittopu/quantnas-pull.git"';
+
 elements.formSteps = Array.from(document.querySelectorAll(".form-step"));
 elements.wizardSteps = Array.from(document.querySelectorAll(".wizard-step"));
 elements.wizardProgressBar = document.querySelector("#wizard-progress-bar");
@@ -131,6 +135,7 @@ elements.reviewSummary = document.querySelector("#review-summary");
 const staticTranslations = {
   "搜索流程": "Workflow",
   "模型池": "Model Pool",
+  "拉取组装": "Pull & Assemble",
   "提交任务": "Submit Request",
   "联系我们": "Contact",
   "开始搜索": "Start Search",
@@ -237,6 +242,12 @@ const staticTranslations = {
   "占位链接，等待正式论文": "Placeholder link pending the paper release",
   "如果你想试用量化层组合搜索、复现实验或讨论合作，可以通过以下邮箱联系。": "Contact us to try quantized layer composition search, reproduce experiments, or discuss collaboration.",
   "量化层组合可视化": "Quantized layer composition visualization",
+  "拿到 JSON，拉取并组装模型": "Pull and assemble from your JSON",
+  "QuantNAS Studio 不在浏览器里搬运模型权重。用户可以使用公开的": "QuantNAS Studio keeps multi-gigabyte model transfer out of the browser. Use the public",
+  "工具，在自己的机器上按 recipe 拉取所需切片，自动校验并组装成 Hugging Face 模型。": "client to fetch only the slices selected by your recipe, verify them, and assemble a Hugging Face model locally.",
+  "查看 quantnas-pull": "Open quantnas-pull",
+  "复制安装命令": "Copy install command",
+  "公开 ModelScope bank 不需要 token；下载和组装都在本地执行。": "Public ModelScope banks do not require a token; download and assembly run locally.",
   "候选组合摘要": "Candidate composition summary",
   "NAS 搜索阶段": "NAS search stages",
   "问卷进度": "Questionnaire progress",
@@ -1107,11 +1118,29 @@ function setupForm() {
   showFormStep(1);
 }
 
+async function copyInstallCommand() {
+  if (!installCommandStatus) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(installCommand);
+    installCommandStatus.textContent = state.language === "zh" ? "安装命令已复制。" : "Install command copied.";
+  } catch {
+    installCommandStatus.textContent = installCommand;
+  }
+  window.setTimeout(() => {
+    installCommandStatus.textContent = state.language === "zh"
+      ? "公开 ModelScope bank 不需要 token；下载和组装都在本地执行。"
+      : "Public ModelScope banks do not require a token; download and assembly run locally.";
+  }, 2200);
+}
+
 captureLocalizedContent();
 setupRevealAnimation();
 setupHeroLossAnimation();
 setupNasNetworkCanvas();
 setupThemeToggle();
 setupForm();
+copyInstallCommandButton?.addEventListener("click", copyInstallCommand);
 applyLanguage("en");
 applyTheme(state.theme, { persist: false, preserveScroll: false });
